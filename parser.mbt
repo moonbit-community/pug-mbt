@@ -38,6 +38,102 @@ fn Parser::skip_newlines(self : Parser) -> Unit {
 }
 
 ///|
+/// Parse an inline element (for block expansion, no Indent token)
+fn Parser::parse_inline_element(self : Parser) -> Node? {
+  let mut tag = "div"
+  let mut id = ""
+  let classes : Array[String] = []
+  let attributes : Array[Attribute] = []
+  let mut has_explicit_tag = false
+
+  // Parse tag name
+  if self.peek() is Some(Tag(t)) {
+    tag = t
+    has_explicit_tag = true
+    let _ = self.advance()
+  }
+
+  // Parse id and classes
+  while true {
+    match self.peek() {
+      Some(Id(i)) => {
+        id = i
+        let _ = self.advance()
+      }
+      Some(Class(c)) => {
+        classes.push(c)
+        let _ = self.advance()
+      }
+      _ => break
+    }
+  }
+
+  // Parse attributes
+  if self.peek() is Some(LParen) {
+    let _ = self.advance()
+    while true {
+      match self.peek() {
+        Some(AttrName(name)) => {
+          let _ = self.advance()
+          let mut value : String? = None
+          if self.peek() is Some(Equals) {
+            let _ = self.advance()
+            if self.peek() is Some(AttrValue(v)) {
+              value = Some(v)
+              let _ = self.advance()
+            }
+          }
+          attributes.push({ name, value })
+        }
+        Some(RParen) => {
+          let _ = self.advance()
+          break
+        }
+        _ => break
+      }
+    }
+  }
+
+  let children : Array[Node] = []
+
+  // Handle chained block expansion
+  while self.peek() is Some(BlockExpand) {
+    let _ = self.advance()
+    let nested = self.parse_inline_element()
+    match nested {
+      Some(node) => children.push(node)
+      None => ()
+    }
+  }
+
+  // Parse text and interpolation
+  while true {
+    match self.peek() {
+      Some(Text(t)) => {
+        children.push(Text(t))
+        let _ = self.advance()
+      }
+      Some(Token::Interpolation(name)) => {
+        children.push(Node::Interpolation(name))
+        let _ = self.advance()
+      }
+      Some(Token::UnescapedInterpolation(name)) => {
+        children.push(Node::UnescapedInterpolation(name))
+        let _ = self.advance()
+      }
+      _ => break
+    }
+  }
+
+  // If no content at all, return None
+  if not(has_explicit_tag) && id == "" && classes.is_empty() && attributes.is_empty() && children.is_empty() {
+    return None
+  }
+
+  Some(Element(tag~, id~, classes~, attributes~, children~))
+}
+
+///|
 /// Parse a line of tokens into a Node (at current position after Indent)
 fn Parser::parse_element(self : Parser) -> Node? {
   let mut tag = "div"
@@ -59,6 +155,10 @@ fn Parser::parse_element(self : Parser) -> Node? {
     Some(Doctype(value)) => {
       let _ = self.advance()
       return Some(Doctype(value))
+    }
+    Some(PipedText(text)) => {
+      let _ = self.advance()
+      return Some(Text(text))
     }
     _ => ()
   }
@@ -113,6 +213,17 @@ fn Parser::parse_element(self : Parser) -> Node? {
 
   // Build children array for inline content
   let children : Array[Node] = []
+
+  // Handle block expansion - parse nested element
+  while self.peek() is Some(BlockExpand) {
+    let _ = self.advance() // consume BlockExpand
+    // Parse the nested element inline
+    let nested = self.parse_inline_element()
+    match nested {
+      Some(node) => children.push(node)
+      None => ()
+    }
+  }
 
   // Parse text and interpolation tokens as inline children
   while true {

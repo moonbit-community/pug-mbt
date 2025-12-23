@@ -33,6 +33,10 @@ pub enum Token {
   UnbufferedComment(String)
   /// Doctype
   Doctype(String)
+  /// Block expansion :
+  BlockExpand
+  /// Piped text |
+  PipedText(String)
   /// End of input
   EOF
 } derive(Show, Eq)
@@ -283,6 +287,22 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
     return tokens
   }
 
+  // Check for piped text |
+  if self.peek() is Some('|') {
+    let _ = self.advance() // consume |
+    // Skip optional space after |
+    if self.peek() is Some(' ') {
+      let _ = self.advance()
+    }
+    let text = self.read_line_text()
+    tokens.push(PipedText(text))
+    if self.peek() is Some('\n') {
+      let _ = self.advance()
+      tokens.push(Newline)
+    }
+    return tokens
+  }
+
   // Check for comment
   if self.peek() is Some('/') && self.peek_ahead(1) is Some('/') {
     let _ = self.advance() // consume first /
@@ -374,6 +394,80 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
     if self.peek() is Some(')') {
       let _ = self.advance()
       tokens.push(RParen)
+    }
+  }
+
+  // Check for block expansion (:)
+  if self.peek() is Some(':') {
+    let _ = self.advance()
+    tokens.push(BlockExpand)
+    // Skip optional space after :
+    if self.peek() is Some(' ') {
+      let _ = self.advance()
+    }
+    // Continue parsing rest of line as nested element
+    // Parse tag name (optional - default is div)
+    match self.peek() {
+      Some(c) if is_alpha(c) => {
+        let tag = self.take_while(is_tag_char)
+        tokens.push(Tag(tag))
+      }
+      _ => ()
+    }
+    // Read ID and class selectors
+    while self.peek() is Some('#') || self.peek() is Some('.') {
+      match self.peek() {
+        Some('#') => {
+          let _ = self.advance()
+          let id = self.take_while(is_id_class_char)
+          tokens.push(Id(id))
+        }
+        Some('.') => {
+          let _ = self.advance()
+          let cls = self.take_while(is_id_class_char)
+          tokens.push(Class(cls))
+        }
+        _ => break
+      }
+    }
+    // Read attributes in parentheses
+    if self.peek() is Some('(') {
+      let _ = self.advance()
+      tokens.push(LParen)
+      while self.peek() is Some(c) && c != ')' {
+        self.skip_while(fn(c) { c == ' ' || c == ',' || c == '\t' })
+        if self.peek() is Some(')') {
+          break
+        }
+        let attr_name = self.take_while(is_attr_name_char)
+        if attr_name.length() > 0 {
+          tokens.push(AttrName(attr_name))
+          self.skip_while(fn(c) { c == ' ' })
+          if self.peek() is Some('=') {
+            let _ = self.advance()
+            tokens.push(Equals)
+            self.skip_while(fn(c) { c == ' ' })
+            let value = self.read_attr_value()
+            tokens.push(AttrValue(value))
+          }
+        }
+      }
+      if self.peek() is Some(')') {
+        let _ = self.advance()
+        tokens.push(RParen)
+      }
+    }
+    // Check for another block expansion (chained)
+    if self.peek() is Some(':') {
+      // Recursive call will handle this
+      let rest = self.tokenize_line()
+      for tok in rest {
+        match tok {
+          Indent(_) | Newline | EOF => () // Skip these from recursive call
+          _ => tokens.push(tok)
+        }
+      }
+      return tokens
     }
   }
 

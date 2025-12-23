@@ -1,7 +1,6 @@
 ///|
 /// Tests for Pug plain text features
 /// Reference: https://pugjs.org/language/plain-text.html
-/// TODO: Implement piped text and block text in lexer/parser
 
 ///|
 test "inline text with html entities" {
@@ -13,7 +12,6 @@ test "inline text with html entities" {
 }
 
 ///|
-#skip
 test "piped text single line" {
   let pug =
     #|p
@@ -23,7 +21,6 @@ test "piped text single line" {
 }
 
 ///|
-#skip
 test "piped text multiple lines" {
   let pug =
     #|p
@@ -35,7 +32,6 @@ test "piped text multiple lines" {
 }
 
 ///|
-#skip
 test "piped text with inline tag" {
   let pug =
     #|p
@@ -47,7 +43,7 @@ test "piped text with inline tag" {
 }
 
 ///|
-#skip
+#skip // TODO: Block text needs implementation
 test "block text with dot" {
   let pug =
     #|script.
@@ -61,7 +57,7 @@ test "block text with dot" {
 }
 
 ///|
-#skip
+#skip // TODO: Block text needs implementation
 test "style block text" {
   let pug =
     #|style.
@@ -73,7 +69,7 @@ test "style block text" {
 }
 
 ///|
-#skip
+#skip // TODO: Block text needs implementation
 test "pre block preserves whitespace" {
   let pug =
     #|pre.
