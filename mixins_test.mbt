@@ -62,7 +62,6 @@ test "mixin with block" {
 }
 
 ///|
-#skip
 test "mixin with attributes" {
   let pug =
     #|mixin link(href, name)

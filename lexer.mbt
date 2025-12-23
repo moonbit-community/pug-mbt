@@ -65,8 +65,8 @@ pub enum Token {
   Block
   /// Mixin definition: (name, params with defaults as (name, default_value) pairs)
   MixinDef(String, Array[(String, String)])
-  /// Mixin call: (name, args)
-  MixinCall(String, Array[String])
+  /// Mixin call: (name, args, attrs as (name, value) pairs)
+  MixinCall(String, Array[String], Array[(String, String)])
   /// Buffered output: = variable (outputs variable value as content, escaped)
   BufferedOutput(String)
   /// Unescaped buffered output: != variable (outputs variable value as content, raw)
@@ -446,6 +446,41 @@ fn Lexer::parse_mixin_args(self : Lexer) -> Array[String] {
 }
 
 ///|
+/// Parse mixin call attributes: (class="foo", id="bar")
+fn Lexer::parse_mixin_attrs(self : Lexer) -> Array[(String, String)] {
+  let attrs : Array[(String, String)] = []
+  if self.peek() is Some('(') {
+    let _ = self.advance() // consume (
+    while self.peek() is Some(c) && c != ')' {
+      self.skip_while(fn(c) { c == ' ' || c == ',' })
+      if self.peek() is Some(')') {
+        break
+      }
+      // Read attribute name
+      let attr_name = self.take_while(is_attr_name_char)
+      if attr_name.length() > 0 {
+        self.skip_while(fn(c) { c == ' ' })
+        // Check for = and value
+        if self.peek() is Some('=') {
+          let _ = self.advance() // consume =
+          self.skip_while(fn(c) { c == ' ' })
+          let value = self.read_attr_value()
+          attrs.push((attr_name, value))
+        } else {
+          // Boolean attribute
+          attrs.push((attr_name, ""))
+        }
+      }
+    }
+    if self.peek() is Some(')') {
+      let _ = self.advance()
+       // consume )
+    }
+  }
+  attrs
+}
+
+///|
 /// Read when value (quoted string or unquoted value)
 fn Lexer::read_when_value(self : Lexer) -> String {
   match self.peek() {
@@ -760,7 +795,7 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
     return tokens
   }
 
-  // Check for mixin call (+name or +name(args))
+  // Check for mixin call (+name or +name(args) or +name(args)(attrs))
   if self.peek() is Some('+') {
     let _ = self.advance() // consume +
     let name = self.take_while(is_tag_char)
@@ -769,7 +804,13 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
     } else {
       []
     }
-    tokens.push(MixinCall(name, args))
+    // Check for additional attributes: +mixin(args)(class="foo")
+    let attrs : Array[(String, String)] = if self.peek() is Some('(') {
+      self.parse_mixin_attrs()
+    } else {
+      []
+    }
+    tokens.push(MixinCall(name, args, attrs))
     if self.peek() is Some('\n') {
       let _ = self.advance()
       tokens.push(Newline)

@@ -288,10 +288,10 @@ fn Parser::parse_element(self : Parser) -> Node? {
       // Body will be added by build_tree
       return Some(MixinDef(name~, params~, body=[]))
     }
-    Some(Token::MixinCall(name, args)) => {
+    Some(Token::MixinCall(name, args, attrs)) => {
       let _ = self.advance()
       // Block content will be added via add_child in build_tree
-      return Some(MixinCall(name~, args~, block=[]))
+      return Some(MixinCall(name~, args~, block=[], attrs~))
     }
     Some(Token::Block) => {
       let _ = self.advance()

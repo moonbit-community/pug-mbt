@@ -315,7 +315,7 @@ fn render_node_with_mixins(
         iterations += 1
       }
     }
-    MixinCall(name~, args~, block~) =>
+    MixinCall(name~, args~, block~, attrs~) =>
       // Look up the mixin and expand it
       match mixins.get(name) {
         Some((params, mixin_body)) => {
@@ -328,6 +328,11 @@ fn render_node_with_mixins(
           // Set block local for "if block" checks
           if block.length() > 0 {
             mixin_locals.set("block", "true")
+          }
+          // Store extra attributes as attributes.X locals
+          for attr_pair in attrs {
+            let (attr_name, attr_value) = attr_pair
+            mixin_locals.set("attributes." + attr_name, attr_value)
           }
           // Bind arguments to parameters, handling defaults and rest params
           let mut arg_idx = 0

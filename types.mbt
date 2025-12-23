@@ -154,8 +154,13 @@ pub enum Node {
     params~ : Array[(String, String)],
     body~ : Array[Node]
   )
-  /// Mixin call (block is content passed to the mixin)
-  MixinCall(name~ : String, args~ : Array[String], block~ : Array[Node])
+  /// Mixin call (block is content passed to the mixin, attrs are extra attributes)
+  MixinCall(
+    name~ : String,
+    args~ : Array[String],
+    block~ : Array[Node],
+    attrs~ : Array[(String, String)]
+  )
   /// Block placeholder (renders mixin block content)
   Block
   /// Variable assignment (- var name = value)

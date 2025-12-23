@@ -70,7 +70,7 @@ pub enum Node {
   When(value~ : String, body~ : Array[Node])
   Default(body~ : Array[Node])
   MixinDef(name~ : String, params~ : Array[(String, String)], body~ : Array[Node])
-  MixinCall(name~ : String, args~ : Array[String], block~ : Array[Node])
+  MixinCall(name~ : String, args~ : Array[String], block~ : Array[Node], attrs~ : Array[(String, String)])
   Block
   VarAssign(name~ : String, value~ : String)
   While(condition~ : String, body~ : Array[Node])
@@ -122,7 +122,7 @@ pub enum Token {
   Default
   Block
   MixinDef(String, Array[(String, String)])
-  MixinCall(String, Array[String])
+  MixinCall(String, Array[String], Array[(String, String)])
   BufferedOutput(String)
   UnescapedBufferedOutput(String)
   VarAssign(String, String)
