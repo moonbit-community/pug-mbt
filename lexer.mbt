@@ -73,6 +73,8 @@ pub enum Token {
   UnescapedBufferedOutput(String)
   /// Variable assignment: - var name = value
   VarAssign(String, String)
+  /// While loop with condition
+  While(String)
   /// End of input
   EOF
 } derive(Show, Eq)
@@ -713,6 +715,18 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
     self.skip_n(7) // consume "unless "
     let condition = self.read_line_text()
     tokens.push(Unless(condition))
+    if self.peek() is Some('\n') {
+      let _ = self.advance()
+      tokens.push(Newline)
+    }
+    return tokens
+  }
+
+  // Check for while loop
+  if self.starts_with("while ") {
+    self.skip_n(6) // consume "while "
+    let condition = self.read_line_text()
+    tokens.push(While(condition))
     if self.peek() is Some('\n') {
       let _ = self.advance()
       tokens.push(Newline)

@@ -160,6 +160,8 @@ pub enum Node {
   Block
   /// Variable assignment (- var name = value)
   VarAssign(name~ : String, value~ : String)
+  /// While loop
+  While(condition~ : String, body~ : Array[Node])
 } derive(Show, Eq)
 
 ///|

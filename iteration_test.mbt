@@ -66,7 +66,6 @@ test "for alias for each" {
 }
 
 ///|
-#skip
 test "while loop" {
   let pug =
     #|ul

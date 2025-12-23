@@ -73,6 +73,7 @@ pub enum Node {
   MixinCall(name~ : String, args~ : Array[String], block~ : Array[Node])
   Block
   VarAssign(name~ : String, value~ : String)
+  While(condition~ : String, body~ : Array[Node])
 }
 pub impl Eq for Node
 pub impl Show for Node
@@ -125,6 +126,7 @@ pub enum Token {
   BufferedOutput(String)
   UnescapedBufferedOutput(String)
   VarAssign(String, String)
+  While(String)
   EOF
 }
 pub impl Eq for Token

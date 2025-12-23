@@ -213,14 +213,28 @@ fn render_node_with_mixins(
       buf.write_string(newline)
     }
     Interpolation(name) => {
+      // Check for post-increment (n++)
+      let (var_name, is_post_increment) = if name.has_suffix("++") {
+        (try! name[0:name.length() - 2].to_string(), true)
+      } else {
+        (name, false)
+      }
       // Look up variable in locals (escaped)
-      let value = match locals.get(name) {
+      let value = match locals.get(var_name) {
         Some(v) => v
         None => "" // Missing variable renders as empty
       }
       buf.write_string(indent)
       buf.write_string(escape_html(value))
       buf.write_string(newline)
+      // Handle post-increment
+      if is_post_increment {
+        let parse_result : Result[Int, _] = try? @strconv.parse_int(value)
+        match parse_result {
+          Ok(n) => locals.set(var_name, (n + 1).to_string())
+          Err(_) => ()
+        }
+      }
     }
     UnescapedInterpolation(name) => {
       // Look up variable in locals (unescaped - raw HTML)
@@ -287,6 +301,20 @@ fn render_node_with_mixins(
     VarAssign(name~, value~) =>
       // Set variable in locals for subsequent nodes
       locals.set(name, value)
+    While(condition~, body~) => {
+      // While loop - keep rendering body while condition is true
+      let max_iterations = 1000 // Safety limit
+      let mut iterations = 0
+      while evaluate_while_condition(condition, locals) &&
+            iterations < max_iterations {
+        for child in body {
+          render_node_with_mixins(
+            child, buf, options, locals, mixins, depth, block_content,
+          )
+        }
+        iterations += 1
+      }
+    }
     MixinCall(name~, args~, block~) =>
       // Look up the mixin and expand it
       match mixins.get(name) {
@@ -751,6 +779,50 @@ fn evaluate_condition(condition : String, locals : Locals) -> Bool {
     Some(v) => v != "" && v != "false"
     None => false
   }
+}
+
+///|
+/// Evaluate while loop condition (supports comparison operators like <, >, <=, >=)
+fn evaluate_while_condition(condition : String, locals : Locals) -> Bool {
+  let cond = condition.trim(chars=" \t").to_string()
+  // Handle < comparison: var < number
+  if cond.contains("<") && not(cond.contains("<=")) {
+    let parts = cond.to_array()
+    let buf = StringBuilder::new()
+    let mut found_op = false
+    let mut var_name = ""
+    let mut i = 0
+    while i < parts.length() {
+      if parts[i] == '<' {
+        var_name = buf.to_string().trim(chars=" \t").to_string()
+        buf.reset()
+        i += 1
+        found_op = true
+        while i < parts.length() && parts[i] == ' ' {
+          i += 1
+        }
+        continue
+      }
+      buf.write_char(parts[i])
+      i += 1
+    }
+    if found_op {
+      let rhs_str = buf.to_string().trim(chars=" \t").to_string()
+      match locals.get(var_name) {
+        Some(v) => {
+          let rhs_result = try? @strconv.parse_int(rhs_str)
+          let lhs_result = try? @strconv.parse_int(v)
+          match (lhs_result, rhs_result) {
+            (Ok(lhs_num), Ok(rhs_num)) => return lhs_num < rhs_num
+            _ => return false
+          }
+        }
+        _ => return false
+      }
+    }
+  }
+  // Fall back to regular condition evaluation
+  evaluate_condition(condition, locals)
 }
 
 ///|

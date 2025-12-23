@@ -247,6 +247,11 @@ fn Parser::parse_element(self : Parser) -> Node? {
         Each(item_var~, index_var~, collection~, body=[], else_body=[]),
       )
     }
+    Some(Token::While(condition)) => {
+      let _ = self.advance()
+      // Body will be added by build_tree
+      return Some(While(condition~, body=[]))
+    }
     Some(Token::Case(expr)) => {
       let _ = self.advance()
       // Children (When/Default) will be added by build_tree
@@ -637,6 +642,7 @@ fn add_child(parent : Node, child : Node) -> Unit {
     Element(children~, ..) => children.push(child)
     Conditional(if_true~, ..) => if_true.push(child)
     Each(body~, ..) => body.push(child)
+    While(body~, ..) => body.push(child)
     When(body~, ..) => body.push(child)
     Default(body~) => body.push(child)
     MixinDef(body~, ..) => body.push(child)
