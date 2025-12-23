@@ -593,7 +593,7 @@ fn render_node_with_mixins(
         }
       }
     }
-    Element(tag~, id~, classes~, attributes~, children~) => {
+    Element(tag~, id~, classes~, attributes~, children~, self_closing~) => {
       buf.write_string(indent)
       buf.write_string("<")
       buf.write_string(tag)
@@ -630,14 +630,21 @@ fn render_node_with_mixins(
             let processed = if v.contains("#{") {
               // Has interpolation, process normally
               interpolate_string(v, locals, should_escape)
-            } else if v.contains("+") {
-              // Expression with concatenation
+            } else if v.contains("+") || v.contains("?") {
+              // Expression with concatenation or ternary
               let result = eval_expression(v, locals)
-              if should_escape { escape_html(result) } else { result }
-            } else if v.contains("\"") || v.contains("'") || v.contains("/") ||
-              v.contains(" ") {
+              if should_escape {
+                escape_html(result)
+              } else {
+                result
+              }
+            } else if v.contains("\"") || v.contains("/") || v.contains(" ") {
               // Has quotes or paths, use as literal
-              if should_escape { escape_html(v) } else { v }
+              if should_escape {
+                escape_html(v)
+              } else {
+                v
+              }
             } else {
               // Might be a variable reference, try to look it up
               match locals.get(v) {
@@ -657,7 +664,10 @@ fn render_node_with_mixins(
           None => () // Boolean attribute, no value output
         }
       }
-      if is_void_element(tag) {
+      if self_closing {
+        buf.write_string("/>")
+        buf.write_string(newline)
+      } else if is_void_element(tag) {
         buf.write_string(">")
         buf.write_string(newline)
       } else if children.length() == 0 {
@@ -887,8 +897,63 @@ fn parse_json_object_values(s : String) -> Array[String] {
 }
 
 ///|
+/// Split a condition string on a logical operator (&&, ||)
+fn split_on_operator(condition : String, op : String) -> Array[String] {
+  let parts : Array[String] = []
+  let chars = condition.to_array()
+  let op_chars = op.to_array()
+  let buf = StringBuilder::new()
+  let mut i = 0
+  while i < chars.length() {
+    // Check for operator
+    if i + op_chars.length() <= chars.length() {
+      let mut matches = true
+      for j in 0..<op_chars.length() {
+        if chars[i + j] != op_chars[j] {
+          matches = false
+          break
+        }
+      }
+      if matches {
+        parts.push(buf.to_string())
+        buf.reset()
+        i += op_chars.length()
+        continue
+      }
+    }
+    buf.write_char(chars[i])
+    i += 1
+  }
+  let remaining = buf.to_string()
+  if remaining.length() > 0 {
+    parts.push(remaining)
+  }
+  parts
+}
+
+///|
 /// Evaluate a condition expression against locals
 fn evaluate_condition(condition : String, locals : Locals) -> Bool {
+  // Handle logical AND (&&)
+  if condition.contains("&&") {
+    let parts = split_on_operator(condition, "&&")
+    for part in parts {
+      if not(evaluate_condition(part, locals)) {
+        return false
+      }
+    }
+    return true
+  }
+  // Handle logical OR (||)
+  if condition.contains("||") {
+    let parts = split_on_operator(condition, "||")
+    for part in parts {
+      if evaluate_condition(part, locals) {
+        return true
+      }
+    }
+    return false
+  }
   // Handle equality comparison: variable == "value"
   if condition.contains("==") {
     let parts = condition.to_array()
@@ -1213,7 +1278,7 @@ fn render_node_with_registry(
             }
         }
       }
-    Element(tag~, id~, classes~, attributes~, children~) => {
+    Element(tag~, id~, classes~, attributes~, children~, self_closing~) => {
       buf.write_string(indent)
       buf.write_string("<")
       buf.write_string(tag)
@@ -1240,12 +1305,19 @@ fn render_node_with_registry(
             let should_escape = not(attr.unescaped)
             let processed = if v.contains("#{") {
               interpolate_string(v, locals, should_escape)
-            } else if v.contains("+") {
+            } else if v.contains("+") || v.contains("?") {
               let result = eval_expression(v, locals)
-              if should_escape { escape_html(result) } else { result }
-            } else if v.contains("\"") || v.contains("'") || v.contains("/") ||
-              v.contains(" ") {
-              if should_escape { escape_html(v) } else { v }
+              if should_escape {
+                escape_html(result)
+              } else {
+                result
+              }
+            } else if v.contains("\"") || v.contains("/") || v.contains(" ") {
+              if should_escape {
+                escape_html(v)
+              } else {
+                v
+              }
             } else {
               match locals.get(v) {
                 Some(local_val) =>
@@ -1264,7 +1336,10 @@ fn render_node_with_registry(
           None => ()
         }
       }
-      if is_void_element(tag) {
+      if self_closing {
+        buf.write_string("/>")
+        buf.write_string(newline)
+      } else if is_void_element(tag) {
         buf.write_string(">")
         buf.write_string(newline)
       } else if children.length() == 0 {
@@ -1472,6 +1547,7 @@ fn normalize_path(path : String) -> String {
     if s == ".." {
       if parts.length() > 0 && parts[parts.length() - 1] != ".." {
         let _ = parts.pop()
+
       } else {
         parts.push("..")
       }

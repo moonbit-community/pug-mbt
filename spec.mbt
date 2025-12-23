@@ -4,20 +4,92 @@
 
 ///|
 /// Evaluate a simple expression with locals
-/// Supports: variable lookup, string concat (+), string literals
+/// Supports: variable lookup, string concat (+), string literals, ternary (? :)
 /// Example: baseUrl + '/path' with {baseUrl: "http://example.com"}
+/// Example: active ? 'on' : 'off' with {active: "true"}
 pub fn eval_expression(expr : String, locals : Locals) -> String {
   let trimmed = trim_spaces(expr)
-  // Check for string concatenation with +
-  let parts = split_on_plus(trimmed)
-  if parts.length() > 1 {
-    let buf = StringBuilder::new()
-    for part in parts {
-      buf.write_string(eval_single_expr(trim_spaces(part), locals))
+  // Check for ternary expression: condition ? true_val : false_val
+  match parse_ternary(trimmed) {
+    Some((cond, true_val, false_val)) => {
+      let cond_result = eval_condition_simple(cond, locals)
+      if cond_result {
+        eval_expression(true_val, locals)
+      } else {
+        eval_expression(false_val, locals)
+      }
     }
-    buf.to_string()
-  } else {
-    eval_single_expr(trimmed, locals)
+    None => {
+      // Check for string concatenation with +
+      let parts = split_on_plus(trimmed)
+      if parts.length() > 1 {
+        let buf = StringBuilder::new()
+        for part in parts {
+          buf.write_string(eval_single_expr(trim_spaces(part), locals))
+        }
+        buf.to_string()
+      } else {
+        eval_single_expr(trimmed, locals)
+      }
+    }
+  }
+}
+
+///|
+/// Parse a ternary expression: condition ? true_val : false_val
+fn parse_ternary(expr : String) -> (String, String, String)? {
+  let chars = expr.to_array()
+  let mut question_pos = -1
+  let mut colon_pos = -1
+  let mut in_single_quote = false
+  let mut in_double_quote = false
+  // Find ? and : positions, respecting quotes
+  for i, c in chars {
+    if c == '\'' && not(in_double_quote) {
+      in_single_quote = not(in_single_quote)
+    } else if c == '"' && not(in_single_quote) {
+      in_double_quote = not(in_double_quote)
+    } else if c == '?' && not(in_single_quote) && not(in_double_quote) {
+      question_pos = i
+    } else if c == ':' &&
+      not(in_single_quote) &&
+      not(in_double_quote) &&
+      question_pos >= 0 {
+      colon_pos = i
+      break // Only find the first : after ?
+    }
+  }
+  if question_pos < 0 || colon_pos < 0 {
+    return None
+  }
+  // Extract parts
+  let cond = StringBuilder::new()
+  for i in 0..<question_pos {
+    cond.write_char(chars[i])
+  }
+  let true_val = StringBuilder::new()
+  for i in (question_pos + 1)..<colon_pos {
+    true_val.write_char(chars[i])
+  }
+  let false_val = StringBuilder::new()
+  for i in (colon_pos + 1)..<chars.length() {
+    false_val.write_char(chars[i])
+  }
+  Some(
+    (
+      trim_spaces(cond.to_string()),
+      trim_spaces(true_val.to_string()),
+      trim_spaces(false_val.to_string()),
+    ),
+  )
+}
+
+///|
+/// Simple condition evaluation for ternary expressions
+fn eval_condition_simple(cond : String, locals : Locals) -> Bool {
+  match locals.get(cond) {
+    Some(v) => v != "" && v != "false"
+    None => false
   }
 }
 
@@ -82,7 +154,7 @@ fn eval_single_expr(expr : String, locals : Locals) -> String {
   if expr.length() >= 2 {
     let chars = expr.to_array()
     if (chars[0] == '\'' && chars[chars.length() - 1] == '\'') ||
-       (chars[0] == '"' && chars[chars.length() - 1] == '"') {
+      (chars[0] == '"' && chars[chars.length() - 1] == '"') {
       // Strip quotes and return literal
       let inner = StringBuilder::new()
       for i in 1..<(chars.length() - 1) {
@@ -187,4 +259,3 @@ pub fn get_doctype(name : String) -> String {
     _ => "<!DOCTYPE \{name}>"
   }
 }
-

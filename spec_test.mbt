@@ -188,6 +188,130 @@ test "include with filter - plain" {
 }
 
 // ============================================================================
+// LOGICAL OPERATORS - NEEDS IMPLEMENTATION
+// ============================================================================
+
+///|
+test "logical operator - and (&&) both true" {
+  let pug =
+    #|if loggedIn && isAdmin
+    #|  p Welcome admin
+  let locals = Locals::new()
+  locals.set("loggedIn", "true")
+  locals.set("isAdmin", "true")
+  inspect(render_with_locals(pug, locals), content="<p>Welcome admin</p>")
+}
+
+///|
+test "logical operator - and (&&) one false" {
+  let pug =
+    #|if loggedIn && isAdmin
+    #|  p Welcome admin
+  let locals = Locals::new()
+  locals.set("loggedIn", "true")
+  locals.set("isAdmin", "false")
+  inspect(render_with_locals(pug, locals), content="")
+}
+
+///|
+test "logical operator - or (||) both false" {
+  let pug =
+    #|if isAdmin || isModerator
+    #|  p You have privileges
+  let locals = Locals::new()
+  locals.set("isAdmin", "false")
+  locals.set("isModerator", "false")
+  inspect(render_with_locals(pug, locals), content="")
+}
+
+///|
+test "logical operator - or (||) one true" {
+  let pug =
+    #|if isAdmin || isModerator
+    #|  p You have privileges
+  let locals = Locals::new()
+  locals.set("isAdmin", "false")
+  locals.set("isModerator", "true")
+  inspect(render_with_locals(pug, locals), content="<p>You have privileges</p>")
+}
+
+// ============================================================================
+// TERNARY EXPRESSIONS - NEEDS IMPLEMENTATION
+// ============================================================================
+
+///|
+test "ternary expression - true condition" {
+  let pug =
+    #|div(class=active ? 'on' : 'off')
+  let locals = Locals::new()
+  locals.set("active", "true")
+  inspect(render_with_locals(pug, locals), content="<div class=\"on\"></div>")
+}
+
+///|
+test "ternary expression - false condition" {
+  let pug =
+    #|div(class=active ? 'on' : 'off')
+  let locals = Locals::new()
+  locals.set("active", "false")
+  inspect(render_with_locals(pug, locals), content="<div class=\"off\"></div>")
+}
+
+// ============================================================================
+// MIXIN REST PARAMS - NEEDS IMPLEMENTATION
+// ============================================================================
+
+///|
+test "mixin rest params - basic" {
+  let pug =
+    #|mixin list(id, ...items)
+    #|  ul(id=id)
+    #|    each item in items
+    #|      li= item
+    #|+list('my-list', 'one', 'two', 'three')
+  inspect(
+    render(pug),
+    content="<ul id=\"my-list\"><li>one</li><li>two</li><li>three</li></ul>",
+  )
+}
+
+// ============================================================================
+// SELF-CLOSING TAG SYNTAX - NEEDS IMPLEMENTATION
+// ============================================================================
+
+///|
+test "self-closing tag - explicit" {
+  let pug =
+    #|foo/
+  inspect(render(pug), content="<foo/>")
+}
+
+///|
+test "self-closing tag - with attributes" {
+  let pug =
+    #|xml-node(attr="value")/
+  inspect(render(pug), content="<xml-node attr=\"value\"/>")
+}
+
+// ============================================================================
+// EACH WITH OBJECTS - SHOULD WORK
+// ============================================================================
+
+///|
+test "each with object - key value" {
+  let pug =
+    #|ul
+    #|  each val, key in obj
+    #|    li #{key}: #{val}
+  let locals = Locals::new()
+  locals.set_object("obj", { "name": "John", "age": "30" })
+  inspect(
+    render_with_locals(pug, locals),
+    content="<ul><li>name: John</li><li>age: 30</li></ul>",
+  )
+}
+
+// ============================================================================
 // PRETTY PRINTING
 // ============================================================================
 
@@ -199,15 +323,18 @@ test "pretty print - basic" {
     #|    title Hello
     #|  body
     #|    p World
-  inspect(render_pretty(pug), content=(
-    #|<html>
-    #|  <head>
-    #|    <title>Hello</title>
-    #|  </head>
-    #|  <body>
-    #|    <p>World</p>
-    #|  </body>
-    #|</html>
-    #|
-  ))
+  inspect(
+    render_pretty(pug),
+    content=(
+      #|<html>
+      #|  <head>
+      #|    <title>Hello</title>
+      #|  </head>
+      #|  <body>
+      #|    <p>World</p>
+      #|  </body>
+      #|</html>
+      #|
+    ),
+  )
 }

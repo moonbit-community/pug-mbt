@@ -111,7 +111,8 @@ pub enum Node {
     id~ : String,
     classes~ : Array[String],
     attributes~ : Array[Attribute],
-    children~ : Array[Node]
+    children~ : Array[Node],
+    self_closing~ : Bool
   )
   /// Plain text content
   Text(String)

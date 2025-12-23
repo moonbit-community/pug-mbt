@@ -89,6 +89,8 @@ pub enum Token {
   Extends(String)
   /// Filter: :filter_name with content
   Filter(String, String)
+  /// Self-closing tag marker /
+  SelfClose
   /// End of input
   EOF
 } derive(Show, Eq)
@@ -235,15 +237,18 @@ fn Lexer::read_attr_value(self : Lexer) -> String {
             in_single_quote = not(in_single_quote)
             buf.write_char('\'')
             let _ = self.advance()
+
           }
           Some('"') if not(in_single_quote) => {
             in_double_quote = not(in_double_quote)
             buf.write_char('"')
             let _ = self.advance()
+
           }
           Some(c) => {
             buf.write_char(c)
             let _ = self.advance()
+
           }
           None => break
         }
@@ -1344,6 +1349,12 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
   if self.peek() is Some(' ') {
     let _ = self.advance()
     self.parse_text_with_interpolations(tokens)
+  }
+
+  // Check for self-closing marker /
+  if self.peek() is Some('/') {
+    let _ = self.advance()
+    tokens.push(SelfClose)
   }
 
   // Handle newline

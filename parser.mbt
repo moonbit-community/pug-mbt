@@ -178,7 +178,7 @@ fn Parser::parse_inline_element(self : Parser) -> Node? {
     children.is_empty() {
     return None
   }
-  Some(Element(tag~, id~, classes~, attributes~, children~))
+  Some(Element(tag~, id~, classes~, attributes~, children~, self_closing=false))
 }
 
 ///|
@@ -186,6 +186,7 @@ fn Parser::parse_inline_element(self : Parser) -> Node? {
 fn Parser::parse_element(self : Parser) -> Node? {
   let mut tag = "div"
   let mut id = ""
+  let mut self_closing = false
   let classes : Array[String] = []
   let attributes : Array[Attribute] = []
   let mut has_explicit_tag = false
@@ -457,6 +458,12 @@ fn Parser::parse_element(self : Parser) -> Node? {
     }
   }
 
+  // Check for self-closing marker
+  if self.peek() is Some(SelfClose) {
+    let _ = self.advance()
+    self_closing = true
+  }
+
   // Skip newline/EOF at end of element line
   match self.peek() {
     Some(Newline) | Some(EOF) => {
@@ -484,13 +491,20 @@ fn Parser::parse_element(self : Parser) -> Node? {
     } else if children.length() > 1 {
       // Multiple inline children without a tag - wrap in implicit div
       return Some(
-        Element(tag="div", id="", classes=[], attributes=[], children~),
+        Element(
+          tag="div",
+          id="",
+          classes=[],
+          attributes=[],
+          children~,
+          self_closing=false,
+        ),
       )
     } else {
       return None
     }
   }
-  Some(Element(tag~, id~, classes~, attributes~, children~))
+  Some(Element(tag~, id~, classes~, attributes~, children~, self_closing~))
 }
 
 ///|
