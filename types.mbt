@@ -172,6 +172,8 @@ pub enum Node {
   NamedBlock(name~ : String, body~ : Array[Node], mode~ : String)
   /// Include statement (for template inclusion)
   Include(path~ : String)
+  /// Include with filter (for filtered template inclusion)
+  IncludeFiltered(filter~ : String, path~ : String)
   /// Extends statement (for template inheritance)
   Extends(path~ : String)
   /// Filter statement (:filter_name content)

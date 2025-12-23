@@ -285,9 +285,7 @@ fn render_node_with_mixins(
   match node {
     Doctype(value) => {
       buf.write_string(indent)
-      buf.write_string("<!DOCTYPE ")
-      buf.write_string(value)
-      buf.write_string(">")
+      buf.write_string(get_doctype(value))
       buf.write_string(newline)
     }
     Text(text) => {
@@ -377,6 +375,7 @@ fn render_node_with_mixins(
     When(..) | Default(..) => () // These should be consumed by Case during parsing
     MixinDef(..) => () // Mixin definitions are collected, not rendered
     Include(..) => () // Include requires template registry, not yet supported
+    IncludeFiltered(..) => () // IncludeFiltered requires template registry
     Extends(..) => () // Extends requires template registry, not yet supported
     Filter(name~, content~) =>
       // For :plain filter, output the content as-is (escaped)
@@ -628,13 +627,17 @@ fn render_node_with_mixins(
             // Check if value is a simple variable reference (no quotes, no #{})
             // If it looks like an identifier and exists in locals, use the local value
             let should_escape = not(attr.unescaped)
-            let processed = if v.contains("#{") ||
-              v.contains("\"") ||
-              v.contains("'") ||
-              v.contains("/") ||
-              v.contains(" ") {
-              // Has interpolation or quotes or paths, process normally
+            let processed = if v.contains("#{") {
+              // Has interpolation, process normally
               interpolate_string(v, locals, should_escape)
+            } else if v.contains("+") {
+              // Expression with concatenation
+              let result = eval_expression(v, locals)
+              if should_escape { escape_html(result) } else { result }
+            } else if v.contains("\"") || v.contains("'") || v.contains("/") ||
+              v.contains(" ") {
+              // Has quotes or paths, use as literal
+              if should_escape { escape_html(v) } else { v }
             } else {
               // Might be a variable reference, try to look it up
               match locals.get(v) {
@@ -1144,6 +1147,19 @@ fn render_node_with_registry(
           buf.write_string(" -->")
         }
       }
+    IncludeFiltered(filter~, path~) =>
+      // Load file content and apply filter
+      match registry.get(path) {
+        Some(content) => {
+          let filtered = apply_filter(filter, content)
+          buf.write_string(filtered)
+        }
+        None => {
+          buf.write_string("<!-- Include not found: ")
+          buf.write_string(path)
+          buf.write_string(" -->")
+        }
+      }
     NamedBlock(name~, body~, mode~) =>
       // For extends: merge with child blocks
       if mode == "replace" {
@@ -1222,12 +1238,14 @@ fn render_node_with_registry(
         match attr.value {
           Some(v) => {
             let should_escape = not(attr.unescaped)
-            let processed = if v.contains("#{") ||
-              v.contains("\"") ||
-              v.contains("'") ||
-              v.contains("/") ||
-              v.contains(" ") {
+            let processed = if v.contains("#{") {
               interpolate_string(v, locals, should_escape)
+            } else if v.contains("+") {
+              let result = eval_expression(v, locals)
+              if should_escape { escape_html(result) } else { result }
+            } else if v.contains("\"") || v.contains("'") || v.contains("/") ||
+              v.contains(" ") {
+              if should_escape { escape_html(v) } else { v }
             } else {
               match locals.get(v) {
                 Some(local_val) =>
@@ -1310,9 +1328,7 @@ fn render_node_with_registry(
     }
     Doctype(value) => {
       buf.write_string(indent)
-      buf.write_string("<!DOCTYPE ")
-      buf.write_string(value)
-      buf.write_string(">")
+      buf.write_string(get_doctype(value))
       buf.write_string(newline)
     }
     Comment(text~, render~) =>

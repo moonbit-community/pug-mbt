@@ -318,6 +318,10 @@ fn Parser::parse_element(self : Parser) -> Node? {
       let _ = self.advance()
       return Some(Node::Include(path~))
     }
+    Some(Token::IncludeFiltered(filter, path)) => {
+      let _ = self.advance()
+      return Some(Node::IncludeFiltered(filter~, path~))
+    }
     Some(Token::Extends(path)) => {
       let _ = self.advance()
       return Some(Node::Extends(path~))

@@ -83,6 +83,8 @@ pub enum Token {
   PrependBlock(String)
   /// Include: include path
   Include(String)
+  /// Include with filter: include:filter path
+  IncludeFiltered(String, String)
   /// Extends: extends path
   Extends(String)
   /// Filter: :filter_name with content
@@ -220,7 +222,34 @@ fn Lexer::read_attr_value(self : Lexer) -> String {
       let _ = self.advance() // consume closing quote
       value
     }
-    _ => self.take_while(fn(c) { c != ')' && c != ',' && c != ' ' })
+    _ => {
+      // Read an expression that may contain + and quoted strings
+      let buf = StringBuilder::new()
+      let mut in_single_quote = false
+      let mut in_double_quote = false
+      while self.pos < self.chars.length() {
+        match self.peek() {
+          Some(')') | Some(',') if not(in_single_quote) && not(in_double_quote) =>
+            break
+          Some('\'') if not(in_double_quote) => {
+            in_single_quote = not(in_single_quote)
+            buf.write_char('\'')
+            let _ = self.advance()
+          }
+          Some('"') if not(in_single_quote) => {
+            in_double_quote = not(in_double_quote)
+            buf.write_char('"')
+            let _ = self.advance()
+          }
+          Some(c) => {
+            buf.write_char(c)
+            let _ = self.advance()
+          }
+          None => break
+        }
+      }
+      buf.to_string()
+    }
   }
 }
 
@@ -818,7 +847,20 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
     return tokens
   }
 
-  // Check for include (template inclusion)
+  // Check for include (template inclusion) or include:filter
+  if self.starts_with("include:") {
+    self.skip_n(8) // consume "include:"
+    // Read filter name (until space)
+    let filter_name = self.take_while(fn(c) { c != ' ' && c != '\n' })
+    self.skip_while(fn(c) { c == ' ' })
+    let path = self.read_line_text().trim(chars=" \t").to_string()
+    tokens.push(IncludeFiltered(filter_name, path))
+    if self.peek() is Some('\n') {
+      let _ = self.advance()
+      tokens.push(Newline)
+    }
+    return tokens
+  }
   if self.starts_with("include ") {
     self.skip_n(8) // consume "include "
     let path = self.read_line_text().trim(chars=" \t").to_string()
