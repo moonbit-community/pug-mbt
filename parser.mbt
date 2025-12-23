@@ -92,11 +92,11 @@ fn Parser::parse_element(self : Parser) -> Node? {
       match self.peek() {
         Some(AttrName(name)) => {
           let _ = self.advance()
-          let mut value = ""
+          let mut value : String? = None // Boolean attribute by default
           if self.peek() is Some(Equals) {
             let _ = self.advance()
             if self.peek() is Some(AttrValue(v)) {
-              value = v
+              value = Some(v) // Has explicit value (even if empty)
               let _ = self.advance()
             }
           }
@@ -123,6 +123,10 @@ fn Parser::parse_element(self : Parser) -> Node? {
       }
       Some(Token::Interpolation(name)) => {
         children.push(Node::Interpolation(name))
+        let _ = self.advance()
+      }
+      Some(Token::UnescapedInterpolation(name)) => {
+        children.push(Node::UnescapedInterpolation(name))
         let _ = self.advance()
       }
       _ => break

@@ -26,6 +26,63 @@ fn escape_html(s : String) -> String {
 }
 
 ///|
+/// Process string with interpolations, replacing #{name} with values from locals
+fn interpolate_string(s : String, locals : Locals, escape : Bool) -> String {
+  let chars = s.to_array()
+  let buf = StringBuilder::new()
+  let literal_buf = StringBuilder::new() // Accumulate literal text
+  let mut i = 0
+  while i < chars.length() {
+    // Check for #{...}
+    if i + 1 < chars.length() && chars[i] == '#' && chars[i + 1] == '{' {
+      // Flush accumulated literal text
+      let literal = literal_buf.to_string()
+      if literal.length() > 0 {
+        if escape {
+          buf.write_string(escape_html(literal))
+        } else {
+          buf.write_string(literal)
+        }
+        literal_buf.reset()
+      }
+      i += 2 // skip #{
+      // Read variable name until }
+      let name_buf = StringBuilder::new()
+      while i < chars.length() && chars[i] != '}' {
+        name_buf.write_char(chars[i])
+        i += 1
+      }
+      if i < chars.length() && chars[i] == '}' {
+        i += 1 // skip }
+      }
+      let name = name_buf.to_string()
+      let value = match locals.get(name) {
+        Some(v) => v
+        None => ""
+      }
+      if escape {
+        buf.write_string(escape_html(value))
+      } else {
+        buf.write_string(value)
+      }
+    } else {
+      literal_buf.write_char(chars[i])
+      i += 1
+    }
+  }
+  // Flush remaining literal text
+  let literal = literal_buf.to_string()
+  if literal.length() > 0 {
+    if escape {
+      buf.write_string(escape_html(literal))
+    } else {
+      buf.write_string(literal)
+    }
+  }
+  buf.to_string()
+}
+
+///|
 /// Render options
 pub struct RenderOptions {
   /// Whether to pretty print with indentation
@@ -78,13 +135,23 @@ fn render_node_with_locals(
       buf.write_string(newline)
     }
     Interpolation(name) => {
-      // Look up variable in locals
+      // Look up variable in locals (escaped)
       let value = match locals.get(name) {
         Some(v) => v
         None => "" // Missing variable renders as empty
       }
       buf.write_string(indent)
       buf.write_string(escape_html(value))
+      buf.write_string(newline)
+    }
+    UnescapedInterpolation(name) => {
+      // Look up variable in locals (unescaped - raw HTML)
+      let value = match locals.get(name) {
+        Some(v) => v
+        None => "" // Missing variable renders as empty
+      }
+      buf.write_string(indent)
+      buf.write_string(value) // No escaping!
       buf.write_string(newline)
     }
     Comment(text~, render~) =>
@@ -123,10 +190,16 @@ fn render_node_with_locals(
       for attr in attributes {
         buf.write_string(" ")
         buf.write_string(attr.name)
-        if attr.value.length() > 0 {
-          buf.write_string("=\"")
-          buf.write_string(escape_html(attr.value))
-          buf.write_string("\"")
+        match attr.value {
+          Some(v) => {
+            // Has explicit value (even if empty string)
+            // Process interpolations in attribute values
+            let processed = interpolate_string(v, locals, true)
+            buf.write_string("=\"")
+            buf.write_string(processed)
+            buf.write_string("\"")
+          }
+          None => () // Boolean attribute, no value output
         }
       }
 

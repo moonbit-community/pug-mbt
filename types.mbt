@@ -2,7 +2,7 @@
 /// Represents an attribute in a Pug element
 pub struct Attribute {
   name : String
-  value : String
+  value : String? // None for boolean attributes, Some("") for empty values
 } derive(Show, Eq)
 
 ///|
@@ -25,6 +25,83 @@ pub fn Locals::set(self : Locals, key : String, value : String) -> Unit {
 }
 
 ///|
+/// Set an array value (stub for future implementation)
+pub fn Locals::set_array(
+  self : Locals,
+  key : String,
+  values : Array[String]
+) -> Unit {
+  // Store as JSON-like array representation for now
+  let buf = StringBuilder::new()
+  buf.write_string("[")
+  for i, v in values {
+    if i > 0 {
+      buf.write_string(",")
+    }
+    buf.write_string("\"")
+    buf.write_string(v)
+    buf.write_string("\"")
+  }
+  buf.write_string("]")
+  self.0[key] = buf.to_string()
+}
+
+///|
+/// Set an object value (stub for future implementation)
+pub fn Locals::set_object(
+  self : Locals,
+  key : String,
+  obj : Map[String, String]
+) -> Unit {
+  // Store as JSON-like object representation for now
+  let buf = StringBuilder::new()
+  buf.write_string("{")
+  let mut first = true
+  for k, v in obj {
+    if not(first) {
+      buf.write_string(",")
+    }
+    first = false
+    buf.write_string("\"")
+    buf.write_string(k)
+    buf.write_string("\":\"")
+    buf.write_string(v)
+    buf.write_string("\"")
+  }
+  buf.write_string("}")
+  self.0[key] = buf.to_string()
+}
+
+///|
+/// Set a nested array value (stub for future implementation)
+pub fn Locals::set_nested_array(
+  self : Locals,
+  key : String,
+  rows : Array[Array[String]]
+) -> Unit {
+  // Store as JSON-like nested array representation for now
+  let buf = StringBuilder::new()
+  buf.write_string("[")
+  for i, row in rows {
+    if i > 0 {
+      buf.write_string(",")
+    }
+    buf.write_string("[")
+    for j, cell in row {
+      if j > 0 {
+        buf.write_string(",")
+      }
+      buf.write_string("\"")
+      buf.write_string(cell)
+      buf.write_string("\"")
+    }
+    buf.write_string("]")
+  }
+  buf.write_string("]")
+  self.0[key] = buf.to_string()
+}
+
+///|
 /// Represents a node in the Pug AST
 pub enum Node {
   /// An HTML element with tag, id, classes, attributes, and children
@@ -37,8 +114,10 @@ pub enum Node {
   )
   /// Plain text content
   Text(String)
-  /// Interpolated variable #{name}
+  /// Interpolated variable #{name} (escaped)
   Interpolation(String)
+  /// Unescaped interpolated variable !{name}
+  UnescapedInterpolation(String)
   /// A comment (can be rendered or not)
   Comment(text~ : String, render~ : Bool)
   /// Document type declaration

@@ -15,8 +15,10 @@ pub enum Token {
   AttrValue(String)
   /// Text content
   Text(String)
-  /// Interpolation #{name}
+  /// Interpolation #{name} (escaped)
   Interpolation(String)
+  /// Unescaped interpolation !{name}
+  UnescapedInterpolation(String)
   /// Start of attributes (
   LParen
   /// End of attributes )
@@ -213,7 +215,7 @@ fn Lexer::parse_text_with_interpolations(
 ) -> Unit {
   let buf = StringBuilder::new()
   while self.peek() is Some(c) && c != '\n' {
-    // Check for interpolation #{...}
+    // Check for escaped interpolation #{...}
     if c == '#' && self.peek_ahead(1) is Some('{') {
       // Flush accumulated text
       if buf.to_string().length() > 0 {
@@ -228,6 +230,21 @@ fn Lexer::parse_text_with_interpolations(
         let _ = self.advance() // consume }
       }
       tokens.push(Interpolation(expr))
+    } else if c == '!' && self.peek_ahead(1) is Some('{') {
+      // Check for unescaped interpolation !{...}
+      // Flush accumulated text
+      if buf.to_string().length() > 0 {
+        tokens.push(Text(buf.to_string()))
+        buf.reset()
+      }
+      let _ = self.advance() // consume !
+      let _ = self.advance() // consume {
+      // Read until closing }
+      let expr = self.take_while(fn(c) { c != '}' && c != '\n' })
+      if self.peek() is Some('}') {
+        let _ = self.advance() // consume }
+      }
+      tokens.push(UnescapedInterpolation(expr))
     } else {
       buf.write_char(c)
       let _ = self.advance()
