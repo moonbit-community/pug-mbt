@@ -354,12 +354,22 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
   if self.peek() is Some('/') && self.peek_ahead(1) is Some('/') {
     let _ = self.advance() // consume first /
     let _ = self.advance() // consume second /
-    if self.peek() is Some('-') {
+    let is_unbuffered = self.peek() is Some('-')
+    if is_unbuffered {
       let _ = self.advance() // consume -
-      let text = trim_leading_space(self.read_line_text())
+    }
+    let text = trim_leading_space(self.read_line_text())
+    // If text is empty, this is a block comment marker
+    // Use special marker "\u0000" to indicate block comment for tokenize() to handle
+    if text.length() == 0 {
+      if is_unbuffered {
+        tokens.push(UnbufferedComment("\u0000")) // Block comment marker
+      } else {
+        tokens.push(Comment("\u0000")) // Block comment marker
+      }
+    } else if is_unbuffered {
       tokens.push(UnbufferedComment(text))
     } else {
-      let text = trim_leading_space(self.read_line_text())
       tokens.push(Comment(text))
     }
     if self.peek() is Some('\n') {
@@ -619,11 +629,32 @@ pub fn Lexer::tokenize(self : Lexer) -> Array[Token] {
     }
     // Check if we got a BlockTextMarker
     let has_block_text = line_tokens.iter().any(fn(t) { t is BlockTextMarker })
+    // Check if we got a block comment marker (Comment("\u0000") or UnbufferedComment("\u0000"))
+    let mut block_comment_type : Int = 0 // 0 = none, 1 = buffered, 2 = unbuffered
     for tok in line_tokens {
-      all_tokens.push(tok)
+      match tok {
+        Comment(t) if t == "\u0000" => block_comment_type = 1
+        UnbufferedComment(t) if t == "\u0000" => block_comment_type = 2
+        _ => ()
+      }
+    }
+    // Add tokens, replacing block comment markers with actual content
+    for tok in line_tokens {
+      match tok {
+        Comment(t) if t == "\u0000" => {
+          let content = self.read_block_text(current_indent)
+          all_tokens.push(Comment(content))
+        }
+        UnbufferedComment(t) if t == "\u0000" => {
+          // Read and discard block content for unbuffered comments
+          let _ = self.read_block_text(current_indent)
+          all_tokens.push(UnbufferedComment(""))
+        }
+        _ => all_tokens.push(tok)
+      }
     }
     // If we have a block text marker, read the block text content
-    if has_block_text {
+    if has_block_text && block_comment_type == 0 {
       let content = self.read_block_text(current_indent)
       if content.length() > 0 {
         all_tokens.push(BlockText(content))

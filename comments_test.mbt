@@ -33,7 +33,6 @@ test "unbuffered comment with content below" {
 }
 
 ///|
-#skip // TODO: Block comments need lexer fix
 test "block comment buffered" {
   let pug =
     #|//
@@ -44,7 +43,6 @@ test "block comment buffered" {
 }
 
 ///|
-#skip // TODO: Block comments need lexer fix
 test "block comment unbuffered" {
   let pug =
     #|//-
