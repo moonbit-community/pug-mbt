@@ -14,6 +14,8 @@ pub fn eval_expression(String, Locals) -> String
 
 pub fn eval_js_expression(String, Locals) -> String
 
+pub fn exec_js_statement(String, Locals) -> Unit
+
 pub fn get_doctype(String) -> String
 
 pub fn locals_to_json(Locals) -> String

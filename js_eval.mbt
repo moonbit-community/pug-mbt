@@ -110,3 +110,10 @@ pub fn eval_js_expression(expr : String, locals : Locals) -> String {
   let context = locals_to_json(locals)
   js_eval_with_context(expr, context)
 }
+
+///|
+/// Execute a JavaScript statement (stub - not yet implemented)
+pub fn exec_js_statement(_stmt : String, _locals : Locals) -> Unit {
+  // TODO: implement statement execution
+  ()
+}

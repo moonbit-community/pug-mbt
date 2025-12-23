@@ -56,3 +56,10 @@ pub fn eval_js_expression(expr : String, locals : Locals) -> String {
   // On non-JS backends, use the simple expression evaluator
   eval_expression(expr, locals)
 }
+
+///|
+/// Execute a statement - stub implementation for non-JS backends
+/// JavaScript statements are only supported on the JS backend
+pub fn exec_js_statement(_stmt : String, _locals : Locals) -> Unit {
+  abort("JavaScript statements are only supported on the JS backend")
+}
