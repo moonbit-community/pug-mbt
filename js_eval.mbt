@@ -24,6 +24,48 @@ extern "js" fn js_eval_with_context(
   #|}
 
 ///|
+/// Execute a JavaScript statement and return updated context as JSON
+extern "js" fn js_exec_with_context(
+  stmt : String,
+  context_json : String,
+) -> String =
+  #|(stmt, contextJson) => {
+  #|  try {
+  #|    const context = JSON.parse(contextJson);
+  #|    // Create a function that executes the statement and returns updated context
+  #|    const keys = Object.keys(context);
+  #|    const values = Object.values(context);
+  #|    // Build code that: 1) declares all context vars, 2) runs statement, 3) returns all vars
+  #|    let code = '';
+  #|    for (let i = 0; i < keys.length; i++) {
+  #|      code += 'var ' + keys[i] + ' = arguments[' + i + '];\n';
+  #|    }
+  #|    code += stmt + ';\n';
+  #|    code += 'return JSON.stringify({';
+  #|    for (let i = 0; i < keys.length; i++) {
+  #|      if (i > 0) code += ',';
+  #|      code += '"' + keys[i] + '":' + keys[i];
+  #|    }
+  #|    // Also capture any new vars defined with 'var' in the statement
+  #|    const varMatch = stmt.match(/var\s+(\w+)/g);
+  #|    if (varMatch) {
+  #|      for (const m of varMatch) {
+  #|        const varName = m.replace(/var\s+/, '');
+  #|        if (!keys.includes(varName)) {
+  #|          if (keys.length > 0 || varMatch.indexOf(m) > 0) code += ',';
+  #|          code += '"' + varName + '":' + varName;
+  #|        }
+  #|      }
+  #|    }
+  #|    code += '});';
+  #|    const fn = new Function(...keys, code);
+  #|    return fn(...values);
+  #|  } catch(e) {
+  #|    return contextJson;
+  #|  }
+  #|}
+
+///|
 /// Check if a string represents a valid number
 fn is_numeric_string(s : String) -> Bool {
   if s.length() == 0 {
@@ -112,8 +154,83 @@ pub fn eval_js_expression(expr : String, locals : Locals) -> String {
 }
 
 ///|
-/// Execute a JavaScript statement (stub - not yet implemented)
-pub fn exec_js_statement(_stmt : String, _locals : Locals) -> Unit {
-  // TODO: implement statement execution
-  ()
+/// Execute a JavaScript statement and update locals with any new/modified variables
+pub fn exec_js_statement(stmt : String, locals : Locals) -> Unit {
+  let context = locals_to_json(locals)
+  let result = js_exec_with_context(stmt, context)
+  // Parse result JSON and update locals
+  parse_json_into_locals(result, locals)
+}
+
+///|
+/// Parse a JSON object string and update locals with its key-value pairs
+fn parse_json_into_locals(json : String, locals : Locals) -> Unit {
+  // Simple JSON parser for {"key":"value",...} format
+  if json.length() < 2 {
+    return
+  }
+  let chars = json.to_array()
+  let mut i = 0
+  // Skip opening {
+  if chars[i] == '{' {
+    i += 1
+  }
+  while i < chars.length() {
+    // Skip whitespace
+    while i < chars.length() &&
+          (chars[i] == ' ' || chars[i] == '\n' || chars[i] == '\t') {
+      i += 1
+    }
+    if i >= chars.length() || chars[i] == '}' {
+      break
+    }
+    // Skip comma
+    if chars[i] == ',' {
+      i += 1
+      continue
+    }
+    // Read key (expect "key")
+    if chars[i] != '"' {
+      break
+    }
+    i += 1
+    let key_start = i
+    while i < chars.length() && chars[i] != '"' {
+      if chars[i] == '\\' {
+        i += 2
+      } else {
+        i += 1
+      }
+    }
+    let key = try! json[key_start:i].to_string()
+    i += 1 // skip closing "
+    // Skip : and whitespace
+    while i < chars.length() && (chars[i] == ':' || chars[i] == ' ') {
+      i += 1
+    }
+    // Read value
+    let value = if chars[i] == '"' {
+      // String value
+      i += 1
+      let val_start = i
+      while i < chars.length() && chars[i] != '"' {
+        if chars[i] == '\\' {
+          i += 2
+        } else {
+          i += 1
+        }
+      }
+      let v = try! json[val_start:i].to_string()
+      i += 1 // skip closing "
+      v
+    } else {
+      // Number, boolean, or null
+      let val_start = i
+      while i < chars.length() && chars[i] != ',' && chars[i] != '}' {
+        i += 1
+      }
+      try! json[val_start:i].to_string()
+    }
+    locals.set(key, value)
+  }
 }

@@ -538,8 +538,13 @@ fn render_node_with_mixins(
         )
       }
     VarAssign(name~, value~) =>
-      // Set variable in locals for subsequent nodes
-      locals.set(name, value)
+      // If name is empty, execute value as a JS statement
+      // Otherwise, set variable in locals for subsequent nodes
+      if name.is_empty() {
+        exec_js_statement(value, locals)
+      } else {
+        locals.set(name, value)
+      }
     While(condition~, body~) => {
       // While loop - keep rendering body while condition is true
       let max_iterations = 1000 // Safety limit

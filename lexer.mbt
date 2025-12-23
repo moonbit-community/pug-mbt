@@ -259,53 +259,6 @@ fn Lexer::read_attr_value(self : Lexer) -> String {
 }
 
 ///|
-/// Read a string literal (handles both " and ' quotes)
-fn Lexer::read_string_literal(self : Lexer) -> String {
-  let quote = match self.peek() {
-    Some('"') => '"'
-    Some('\'') => '\''
-    _ => return ""
-  }
-  let _ = self.advance() // consume opening quote
-  let value = self.take_while(fn(c) { c != quote })
-  let _ = self.advance() // consume closing quote
-  value
-}
-
-///|
-/// Read an array literal like ["a", "b", "c"]
-fn Lexer::read_array_literal(self : Lexer) -> String {
-  let buf = StringBuilder::new()
-  let mut depth = 0
-  while self.pos < self.chars.length() {
-    match self.peek() {
-      Some('[') => {
-        depth += 1
-        buf.write_char('[')
-        let _ = self.advance()
-
-      }
-      Some(']') => {
-        buf.write_char(']')
-        let _ = self.advance()
-        depth -= 1
-        if depth == 0 {
-          break
-        }
-      }
-      Some('\n') => break // Stop at newline
-      Some(c) => {
-        buf.write_char(c)
-        let _ = self.advance()
-
-      }
-      None => break
-    }
-  }
-  buf.to_string()
-}
-
-///|
 /// Check if remaining input starts with a string
 fn Lexer::starts_with(self : Lexer, s : String) -> Bool {
   let s_chars = s.to_array()
@@ -712,34 +665,16 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
     return tokens
   }
 
-  // Check for unbuffered code: - var name = value
+  // Check for unbuffered code: - <js statement>
+  // Just capture the entire line after "- " as a JS statement
   if self.peek() is Some('-') && self.peek_ahead(1) is Some(' ') {
     let _ = self.advance() // consume -
     let _ = self.advance() // consume space
     self.skip_while(fn(c) { c == ' ' })
-    // Check for "var " keyword
-    if self.starts_with("var ") {
-      self.skip_n(4) // consume "var "
-      self.skip_while(fn(c) { c == ' ' })
-      // Read variable name
-      let var_name = self.take_while(is_tag_char)
-      self.skip_while(fn(c) { c == ' ' })
-      // Expect =
-      if self.peek() is Some('=') {
-        let _ = self.advance()
-        self.skip_while(fn(c) { c == ' ' })
-        // Read value (string literal or identifier)
-        let value = if self.peek() is Some('"') || self.peek() is Some('\'') {
-          self.read_string_literal()
-        } else if self.peek() is Some('[') {
-          // Array literal - read until matching ]
-          self.read_array_literal()
-        } else {
-          self.read_line_text()
-        }
-        tokens.push(VarAssign(var_name, value))
-      }
-    }
+    // Read the entire rest of the line as a JS statement
+    let statement = self.read_line_text()
+    // Use empty name to signal "execute this as a JS statement"
+    tokens.push(VarAssign("", statement))
     if self.peek() is Some('\n') {
       let _ = self.advance()
       tokens.push(Newline)

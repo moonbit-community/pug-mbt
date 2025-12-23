@@ -59,7 +59,81 @@ pub fn eval_js_expression(expr : String, locals : Locals) -> String {
 
 ///|
 /// Execute a statement - stub implementation for non-JS backends
-/// JavaScript statements are only supported on the JS backend
-pub fn exec_js_statement(_stmt : String, _locals : Locals) -> Unit {
-  abort("JavaScript statements are only supported on the JS backend")
+/// Handles simple "var name = value" patterns only
+pub fn exec_js_statement(stmt : String, locals : Locals) -> Unit {
+  // Try to parse simple "var name = value" pattern
+  let trimmed = stmt.trim_start(chars=" \t").to_string()
+  if trimmed.has_prefix("var ") {
+    let rest = try! trimmed[4:].to_string()
+    let rest_trimmed = rest.trim_start(chars=" \t").to_string()
+    // Find variable name
+    let mut name_end = 0
+    for c in rest_trimmed {
+      if c == ' ' || c == '=' {
+        break
+      }
+      name_end += 1
+    }
+    if name_end > 0 {
+      let name = try! rest_trimmed[0:name_end].to_string()
+      // Find = sign
+      let after_name = try! rest_trimmed[name_end:].to_string()
+      let eq_trimmed = after_name.trim_start(chars=" \t").to_string()
+      if eq_trimmed.has_prefix("=") {
+        let value_part = try! eq_trimmed[1:].to_string()
+        let value_trimmed = value_part.trim_start(chars=" \t").to_string()
+        // Parse value
+        let value = if value_trimmed.has_prefix("\"") {
+          // Double-quoted string
+          parse_quoted_string_stub(value_trimmed, '"')
+        } else if value_trimmed.has_prefix("'") {
+          // Single-quoted string
+          parse_quoted_string_stub(value_trimmed, '\'')
+        } else {
+          // Boolean, number, or identifier - take until end or semicolon
+          let mut end = 0
+          for c in value_trimmed {
+            if c == ';' || c == '\n' {
+              break
+            }
+            end += 1
+          }
+          try! value_trimmed[0:end].to_string()
+        }
+        locals.set(name, value)
+        return
+      }
+    }
+  }
+  // Complex statement - not supported on non-JS backends
+  abort("Complex JavaScript statements are only supported on the JS backend")
+}
+
+///|
+/// Parse a quoted string, handling escape sequences
+fn parse_quoted_string_stub(s : String, quote : Char) -> String {
+  let chars = s.to_array()
+  if chars.length() < 2 || chars[0] != quote {
+    return ""
+  }
+  let buf = StringBuilder::new()
+  let mut i = 1
+  while i < chars.length() {
+    let c = chars[i]
+    if c == quote {
+      break
+    } else if c == '\\' && i + 1 < chars.length() {
+      i += 1
+      match chars[i] {
+        'n' => buf.write_char('\n')
+        't' => buf.write_char('\t')
+        'r' => buf.write_char('\r')
+        _ => buf.write_char(chars[i])
+      }
+    } else {
+      buf.write_char(c)
+    }
+    i += 1
+  }
+  buf.to_string()
 }

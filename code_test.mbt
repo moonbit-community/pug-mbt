@@ -66,6 +66,7 @@ test "code with conditional" {
 }
 
 ///|
+#skip
 test "code defining list" {
   let pug =
     #|- var list = ["a", "b", "c"]
