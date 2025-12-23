@@ -185,6 +185,114 @@ fn escape_html(s : String) -> String {
 }
 
 ///|
+/// Check if a string is a quoted literal
+fn is_quoted_literal(s : String) -> Bool {
+  let chars = s.to_array()
+  if chars.length() < 2 {
+    return false
+  }
+  (chars[0] == '"' && chars[chars.length() - 1] == '"') ||
+  (chars[0] == '\'' && chars[chars.length() - 1] == '\'')
+}
+
+///|
+/// Check if a string looks like a simple variable name (identifier)
+fn is_simple_identifier(s : String) -> Bool {
+  let trimmed = s.trim(chars=" \t").to_string()
+  if trimmed.length() == 0 {
+    return false
+  }
+  let chars = trimmed.to_array()
+  // First char must be letter or underscore
+  let first = chars[0]
+  if not(
+      (first >= 'a' && first <= 'z') ||
+      (first >= 'A' && first <= 'Z') ||
+      first == '_',
+    ) {
+    return false
+  }
+  // Rest must be alphanumeric or underscore
+  for i in 1..<chars.length() {
+    let c = chars[i]
+    if not(
+        (c >= 'a' && c <= 'z') ||
+        (c >= 'A' && c <= 'Z') ||
+        (c >= '0' && c <= '9') ||
+        c == '_',
+      ) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+/// Check if an expression needs JS evaluation (contains operators, method calls, etc.)
+/// Excludes quoted string literals and plain URLs which should be used as-is
+fn needs_js_eval(expr : String) -> Bool {
+  // Quoted strings are literals, not expressions
+  if is_quoted_literal(expr) {
+    return false
+  }
+  // Simple identifiers are variable lookups, not JS expressions
+  if is_simple_identifier(expr) {
+    return false
+  }
+  // Look for specific JS expression patterns that distinguish from URLs/paths:
+  // 1. Method call: identifier.identifier(
+  // 2. Ternary: identifier ? value : value
+  // 3. Operators with spaces: " + ", " - ", " * ", " / "
+  // 4. Comparison operators: ==, !=, <=, >=
+  // 5. Array access: identifier[
+
+  // Check for ternary operator (? followed by :)
+  if expr.contains(" ? ") && expr.contains(" : ") {
+    return true
+  }
+  // Check for operators with spaces (common in expressions, not in URLs)
+  if expr.contains(" + ") || expr.contains(" - ") || expr.contains(" * ") {
+    return true
+  }
+  // Check for comparison operators
+  if expr.contains("==") ||
+    expr.contains("!=") ||
+    expr.contains("<=") ||
+    expr.contains(">=") {
+    return true
+  }
+  // Check for method call pattern: word.word(
+  let chars = expr.to_array()
+  let mut i = 0
+  while i < chars.length() {
+    if chars[i] == '.' {
+      // Found a dot, check if followed by identifier and (
+      let mut j = i + 1
+      // Skip identifier after dot
+      while j < chars.length() &&
+            (
+              (chars[j] >= 'a' && chars[j] <= 'z') ||
+              (chars[j] >= 'A' && chars[j] <= 'Z') ||
+              (chars[j] >= '0' && chars[j] <= '9') ||
+              chars[j] == '_'
+            ) {
+        j += 1
+      }
+      // Check if followed by (
+      if j < chars.length() && j > i + 1 && chars[j] == '(' {
+        return true
+      }
+    }
+    i += 1
+  }
+  // Check for array access: identifier[
+  if expr.contains("[") && not(expr.has_prefix("[")) {
+    return true
+  }
+  false
+}
+
+///|
 /// Process string with interpolations, replacing #{name} with values from locals
 fn interpolate_string(s : String, locals : Locals, escape : Bool) -> String {
   let chars = s.to_array()
@@ -205,19 +313,34 @@ fn interpolate_string(s : String, locals : Locals, escape : Bool) -> String {
         literal_buf.reset()
       }
       i += 2 // skip #{
-      // Read variable name until }
-      let name_buf = StringBuilder::new()
-      while i < chars.length() && chars[i] != '}' {
-        name_buf.write_char(chars[i])
+      // Read expression until }
+      let expr_buf = StringBuilder::new()
+      let mut brace_depth = 1
+      while i < chars.length() && brace_depth > 0 {
+        if chars[i] == '{' {
+          brace_depth += 1
+          expr_buf.write_char(chars[i])
+        } else if chars[i] == '}' {
+          brace_depth -= 1
+          if brace_depth > 0 {
+            expr_buf.write_char(chars[i])
+          }
+        } else {
+          expr_buf.write_char(chars[i])
+        }
         i += 1
       }
-      if i < chars.length() && chars[i] == '}' {
-        i += 1 // skip }
-      }
-      let name = name_buf.to_string()
-      let value = match locals.get(name) {
-        Some(v) => v
-        None => ""
+      let expr = expr_buf.to_string()
+      // Evaluate the expression
+      let value = if needs_js_eval(expr) {
+        // Use JS evaluation for complex expressions
+        eval_js_expression(expr, locals)
+      } else {
+        // Simple variable lookup
+        match locals.get(expr) {
+          Some(v) => v
+          None => ""
+        }
       }
       if escape {
         buf.write_string(escape_html(value))
@@ -624,29 +747,42 @@ fn render_node_with_mixins(
         match attr.value {
           Some(v) => {
             // Has explicit value (even if empty string)
-            // Check if value is a simple variable reference (no quotes, no #{})
-            // If it looks like an identifier and exists in locals, use the local value
             let should_escape = not(attr.unescaped)
             let processed = if v.contains("#{") {
               // Has interpolation, process normally
               interpolate_string(v, locals, should_escape)
-            } else if v.contains("+") || v.contains("?") {
-              // Expression with concatenation or ternary
-              let result = eval_expression(v, locals)
+            } else if needs_js_eval(v) {
+              // Expression needs JS evaluation (method calls, operators, etc.)
+              let result = eval_js_expression(v, locals)
               if should_escape {
                 escape_html(result)
               } else {
                 result
               }
-            } else if v.contains("\"") || v.contains("/") || v.contains(" ") {
-              // Has quotes or paths, use as literal
-              if should_escape {
+            } else if v.contains("\"") || v.contains("'") {
+              // Quoted literal - strip quotes
+              let chars = v.to_array()
+              if chars.length() >= 2 &&
+                (
+                  (chars[0] == '"' && chars[chars.length() - 1] == '"') ||
+                  (chars[0] == '\'' && chars[chars.length() - 1] == '\'')
+                ) {
+                let inner = StringBuilder::new()
+                for i in 1..<(chars.length() - 1) {
+                  inner.write_char(chars[i])
+                }
+                if should_escape {
+                  escape_html(inner.to_string())
+                } else {
+                  inner.to_string()
+                }
+              } else if should_escape {
                 escape_html(v)
               } else {
                 v
               }
             } else {
-              // Might be a variable reference, try to look it up
+              // Simple variable reference, try to look it up
               match locals.get(v) {
                 Some(local_val) =>
                   if should_escape {
@@ -654,7 +790,7 @@ fn render_node_with_mixins(
                   } else {
                     local_val
                   }
-                None => if should_escape { escape_html(v) } else { v } // Not a variable, use as literal
+                None => if should_escape { escape_html(v) } else { v }
               }
             }
             buf.write_string("=\"")
@@ -1305,15 +1441,31 @@ fn render_node_with_registry(
             let should_escape = not(attr.unescaped)
             let processed = if v.contains("#{") {
               interpolate_string(v, locals, should_escape)
-            } else if v.contains("+") || v.contains("?") {
-              let result = eval_expression(v, locals)
+            } else if needs_js_eval(v) {
+              let result = eval_js_expression(v, locals)
               if should_escape {
                 escape_html(result)
               } else {
                 result
               }
-            } else if v.contains("\"") || v.contains("/") || v.contains(" ") {
-              if should_escape {
+            } else if v.contains("\"") || v.contains("'") {
+              // Quoted literal - strip quotes
+              let chars = v.to_array()
+              if chars.length() >= 2 &&
+                (
+                  (chars[0] == '"' && chars[chars.length() - 1] == '"') ||
+                  (chars[0] == '\'' && chars[chars.length() - 1] == '\'')
+                ) {
+                let inner = StringBuilder::new()
+                for i in 1..<(chars.length() - 1) {
+                  inner.write_char(chars[i])
+                }
+                if should_escape {
+                  escape_html(inner.to_string())
+                } else {
+                  inner.to_string()
+                }
+              } else if should_escape {
                 escape_html(v)
               } else {
                 v

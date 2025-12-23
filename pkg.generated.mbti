@@ -6,11 +6,25 @@ import(
 )
 
 // Values
+pub fn apply_filter(String, String) -> String
+
 pub fn compile(String) -> CompiledTemplate
+
+pub fn eval_expression(String, Locals) -> String
+
+pub fn eval_js_expression(String, Locals) -> String
+
+pub fn get_doctype(String) -> String
+
+pub fn locals_to_json(Locals) -> String
 
 pub fn parse(String) -> Document
 
 pub fn render(String) -> String
+
+pub fn render_file(String) -> String raise @fs.IOError
+
+pub fn render_file_with_locals(String, Locals) -> String raise @fs.IOError
 
 pub fn render_pretty(String) -> String
 
@@ -65,7 +79,7 @@ pub fn Locals::set_nested_array(Self, String, Array[Array[String]]) -> Unit
 pub fn Locals::set_object(Self, String, Map[String, String]) -> Unit
 
 pub enum Node {
-  Element(tag~ : String, id~ : String, classes~ : Array[String], attributes~ : Array[Attribute], children~ : Array[Node])
+  Element(tag~ : String, id~ : String, classes~ : Array[String], attributes~ : Array[Attribute], children~ : Array[Node], self_closing~ : Bool)
   Text(String)
   Interpolation(String)
   UnescapedInterpolation(String)
@@ -83,6 +97,7 @@ pub enum Node {
   While(condition~ : String, body~ : Array[Node])
   NamedBlock(name~ : String, body~ : Array[Node], mode~ : String)
   Include(path~ : String)
+  IncludeFiltered(filter~ : String, path~ : String)
   Extends(path~ : String)
   Filter(name~ : String, content~ : String)
 }
@@ -152,8 +167,10 @@ pub enum Token {
   AppendBlock(String)
   PrependBlock(String)
   Include(String)
+  IncludeFiltered(String, String)
   Extends(String)
   Filter(String, String)
+  SelfClose
   EOF
 }
 pub impl Eq for Token

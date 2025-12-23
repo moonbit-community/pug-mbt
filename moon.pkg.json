@@ -1,5 +1,9 @@
 {
   "import": [
     "moonbitlang/x/fs"
-  ]
+  ],
+  "targets": {
+    "js_eval.mbt": ["js"],
+    "js_eval_stub.mbt": ["not", "js"]
+  }
 }

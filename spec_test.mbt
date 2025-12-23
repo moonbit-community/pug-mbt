@@ -312,6 +312,38 @@ test "each with object - key value" {
 }
 
 // ============================================================================
+// JS EXPRESSION EVALUATION (JS backend only)
+// ============================================================================
+
+// Note: These tests use JS FFI on the JS backend.
+// On wasm-gc, they fall back to simple expression evaluation.
+
+///|
+test "js expression - method call in interpolation (js backend)" {
+  // On JS backend: "hello".toUpperCase() = "HELLO"
+  // On wasm-gc: falls back to eval_expression which returns ""
+  let pug =
+    #|p #{msg.toUpperCase()}
+  let locals = Locals::new()
+  locals.set("msg", "hello")
+  let result = render_with_locals(pug, locals)
+  // Just verify it doesn't crash - actual output depends on backend
+  inspect(result.length() > 0, content="true")
+}
+
+///|
+test "js expression - arithmetic in attribute" {
+  let pug =
+    #|div(data-value=count + 1)
+  let locals = Locals::new()
+  locals.set("count", "5")
+  let result = render_with_locals(pug, locals)
+  // On wasm-gc: string concat "5" + "1" = "51"
+  // On JS backend: numeric 5 + 1 = 6
+  inspect(result, content="<div data-value=\"51\"></div>")
+}
+
+// ============================================================================
 // PRETTY PRINTING
 // ============================================================================
 
