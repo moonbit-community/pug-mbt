@@ -1,12 +1,12 @@
 {
-  "name": "username/pug",
+  "name": "Milky2018/pug",
   "version": "0.1.0",
   "deps": {
     "moonbitlang/x": "0.4.38"
   },
   "readme": "README.mbt.md",
-  "repository": "",
+  "repository": "https://github.com/moonbit-community/pug-mbt.git",
   "license": "Apache-2.0",
-  "keywords": [],
-  "description": ""
+  "keywords": ["pug", "jade"],
+  "description": "A Pug template engine implementation in MoonBit."
 }
