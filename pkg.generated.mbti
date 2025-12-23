@@ -1,0 +1,132 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "username/pug"
+
+// Values
+pub fn compile(String) -> CompiledTemplate
+
+pub fn parse(String) -> Document
+
+pub fn render(String) -> String
+
+pub fn render_pretty(String) -> String
+
+pub fn render_with_locals(String, Locals) -> String
+
+pub fn tokenize(String) -> Array[Token]
+
+// Errors
+
+// Types and methods
+pub struct Attribute {
+  name : String
+  value : String?
+  unescaped : Bool
+}
+pub impl Eq for Attribute
+pub impl Show for Attribute
+
+pub struct CompiledTemplate {
+  doc : Document
+}
+pub fn CompiledTemplate::render(Self, Locals) -> String
+pub fn CompiledTemplate::render_with_options(Self, Locals, RenderOptions) -> String
+
+pub struct Document {
+  nodes : Array[Node]
+}
+pub fn Document::iter(Self) -> Iter[Node]
+pub fn Document::new() -> Self
+pub fn Document::push(Self, Node) -> Unit
+pub fn Document::render(Self, options~ : RenderOptions) -> String
+pub fn Document::render_with_locals(Self, Locals, options~ : RenderOptions) -> String
+pub fn Document::to_html(Self) -> String
+pub fn Document::to_pretty_html(Self) -> String
+
+type Lexer
+pub fn Lexer::new(String) -> Self
+pub fn Lexer::tokenize(Self) -> Array[Token]
+pub fn Lexer::tokenize_line(Self) -> Array[Token]
+
+pub struct Locals(Map[String, String])
+pub fn Locals::get(Self, String) -> String?
+#deprecated
+pub fn Locals::inner(Self) -> Map[String, String]
+pub fn Locals::new() -> Self
+pub fn Locals::set(Self, String, String) -> Unit
+pub fn Locals::set_array(Self, String, Array[String]) -> Unit
+pub fn Locals::set_nested_array(Self, String, Array[Array[String]]) -> Unit
+pub fn Locals::set_object(Self, String, Map[String, String]) -> Unit
+
+pub enum Node {
+  Element(tag~ : String, id~ : String, classes~ : Array[String], attributes~ : Array[Attribute], children~ : Array[Node])
+  Text(String)
+  Interpolation(String)
+  UnescapedInterpolation(String)
+  Comment(text~ : String, render~ : Bool)
+  Doctype(String)
+  Conditional(condition~ : String, if_true~ : Array[Node], if_false~ : Array[Node], is_unless~ : Bool)
+  Each(item_var~ : String, index_var~ : String, collection~ : String, body~ : Array[Node], else_body~ : Array[Node])
+  Case(expr~ : String, cases~ : Array[(String, Array[Node])], default~ : Array[Node])
+  When(value~ : String, body~ : Array[Node])
+  Default(body~ : Array[Node])
+  MixinDef(name~ : String, params~ : Array[String], body~ : Array[Node])
+  MixinCall(name~ : String, args~ : Array[String])
+}
+pub impl Eq for Node
+pub impl Show for Node
+
+type Parser
+pub fn Parser::new(Array[Token]) -> Self
+pub fn Parser::parse(Self) -> Document
+
+pub struct RenderOptions {
+  pretty : Bool
+  indent_str : String
+}
+pub fn RenderOptions::default() -> Self
+pub fn RenderOptions::pretty() -> Self
+
+pub enum Token {
+  Indent(Int)
+  Tag(String)
+  Id(String)
+  Class(String)
+  AttrName(String)
+  AttrValue(String)
+  Text(String)
+  Interpolation(String)
+  UnescapedInterpolation(String)
+  TagInterpolation(String)
+  LParen
+  RParen
+  Equals
+  UnescapedEquals
+  Newline
+  Comment(String)
+  UnbufferedComment(String)
+  Doctype(String)
+  BlockExpand
+  PipedText(String)
+  BlockTextMarker
+  BlockText(String)
+  If(String)
+  ElseIf(String)
+  Else
+  Unless(String)
+  Each(String, String, String)
+  Case(String)
+  When(String)
+  Default
+  MixinDef(String, Array[String])
+  MixinCall(String, Array[String])
+  BufferedOutput(String)
+  UnescapedBufferedOutput(String)
+  EOF
+}
+pub impl Eq for Token
+pub impl Show for Token
+
+// Type aliases
+
+// Traits
+

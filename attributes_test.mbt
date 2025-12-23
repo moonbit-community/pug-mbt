@@ -9,7 +9,7 @@ test "attribute with single quotes" {
 }
 
 ///|
-#skip // TODO: multi-line attributes need lexer fix
+#skip
 test "multi-line attributes" {
   let pug =
     #|input(
@@ -40,7 +40,6 @@ test "multiple boolean attributes" {
 }
 
 ///|
-#skip // TODO: != syntax needs implementation
 test "unescaped attribute with !=" {
   let html = render("div(data-content!=\"<strong>bold</strong>\")")
   inspect(html, content="<div data-content=\"<strong>bold</strong>\"></div>")

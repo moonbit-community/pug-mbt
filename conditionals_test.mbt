@@ -39,7 +39,6 @@ test "if-else" {
 }
 
 ///|
-#skip
 test "if-else if-else" {
   let pug =
     #|if status == "active"
@@ -77,7 +76,6 @@ test "unless false" {
 }
 
 ///|
-#skip
 test "nested conditionals" {
   let pug =
     #|if user

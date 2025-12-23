@@ -1,9 +1,77 @@
 ///|
+/// Mixin storage for rendering
+priv struct MixinStore {
+  mixins : Map[String, (Array[String], Array[Node])] // name -> (params, body)
+}
+
+///|
+fn MixinStore::new() -> MixinStore {
+  { mixins: {} }
+}
+
+///|
+fn MixinStore::add(
+  self : MixinStore,
+  name : String,
+  params : Array[String],
+  body : Array[Node],
+) -> Unit {
+  self.mixins[name] = (params, body)
+}
+
+///|
+fn MixinStore::get(
+  self : MixinStore,
+  name : String,
+) -> (Array[String], Array[Node])? {
+  self.mixins.get(name)
+}
+
+///|
+/// Collect all mixin definitions from nodes
+fn collect_mixins(nodes : Iter[Node], store : MixinStore) -> Unit {
+  for node in nodes {
+    match node {
+      MixinDef(name~, params~, body~) => store.add(name, params, body)
+      Element(children~, ..) => collect_mixins(children.iter(), store)
+      Conditional(if_true~, if_false~, ..) => {
+        collect_mixins(if_true.iter(), store)
+        collect_mixins(if_false.iter(), store)
+      }
+      Each(body~, else_body~, ..) => {
+        collect_mixins(body.iter(), store)
+        collect_mixins(else_body.iter(), store)
+      }
+      Case(cases~, default~, ..) => {
+        for pair in cases {
+          let (_, case_body) = pair
+          collect_mixins(case_body.iter(), store)
+        }
+        collect_mixins(default.iter(), store)
+      }
+      _ => ()
+    }
+  }
+}
+
+///|
 /// Self-closing HTML tags
 fn is_void_element(tag : String) -> Bool {
   match tag {
-    "area" | "base" | "br" | "col" | "embed" | "hr" | "img" | "input" | "link" |
-    "meta" | "param" | "source" | "track" | "wbr" => true
+    "area"
+    | "base"
+    | "br"
+    | "col"
+    | "embed"
+    | "hr"
+    | "img"
+    | "input"
+    | "link"
+    | "meta"
+    | "param"
+    | "source"
+    | "track"
+    | "wbr" => true
     _ => false
   }
 }
@@ -111,13 +179,14 @@ pub fn RenderOptions::pretty() -> RenderOptions {
 }
 
 ///|
-/// Render a single node to HTML with locals for interpolation
-fn render_node_with_locals(
+/// Render a single node to HTML with locals and mixins
+fn render_node_with_mixins(
   node : Node,
   buf : StringBuilder,
   options : RenderOptions,
   locals : Locals,
-  depth : Int
+  mixins : MixinStore,
+  depth : Int,
 ) -> Unit {
   let indent = if options.pretty {
     let mut s = ""
@@ -129,7 +198,6 @@ fn render_node_with_locals(
     ""
   }
   let newline = if options.pretty { "\n" } else { "" }
-
   match node {
     Doctype(value) => {
       buf.write_string(indent)
@@ -190,7 +258,9 @@ fn render_node_with_locals(
           } else {
             // Found body - render it
             for child in case_body {
-              render_node_with_locals(child, buf, options, locals, depth)
+              render_node_with_mixins(
+                child, buf, options, locals, mixins, depth,
+              )
             }
             matched = true
             break
@@ -200,23 +270,53 @@ fn render_node_with_locals(
       if not(matched) {
         // No match found, render default
         for child in default {
-          render_node_with_locals(child, buf, options, locals, depth)
+          render_node_with_mixins(child, buf, options, locals, mixins, depth)
         }
       }
     }
     When(..) | Default(..) => () // These should be consumed by Case during parsing
+    MixinDef(..) => () // Mixin definitions are collected, not rendered
+    MixinCall(name~, args~) =>
+      // Look up the mixin and expand it
+      match mixins.get(name) {
+        Some((params, body)) => {
+          // Create locals with arguments bound to parameters
+          let mixin_locals = Locals::new()
+          // Copy parent locals
+          for k, v in locals.0 {
+            mixin_locals.set(k, v)
+          }
+          // Bind arguments to parameters
+          for i, param in params {
+            if i < args.length() {
+              mixin_locals.set(param, args[i])
+            }
+          }
+          // Render mixin body
+          for child in body {
+            render_node_with_mixins(
+              child, buf, options, mixin_locals, mixins, depth,
+            )
+          }
+        }
+        None => () // Unknown mixin, skip
+      }
     Conditional(condition~, if_true~, if_false~, is_unless~) => {
       // Evaluate the condition
       let cond_result = evaluate_condition(condition, locals)
       // For unless, invert the result
-      let should_render_true = if is_unless { not(cond_result) } else { cond_result }
+      let should_render_true = if is_unless {
+        not(cond_result)
+      } else {
+        cond_result
+      }
       if should_render_true {
         for child in if_true {
-          render_node_with_locals(child, buf, options, locals, depth)
+          render_node_with_mixins(child, buf, options, locals, mixins, depth)
         }
       } else {
         for child in if_false {
-          render_node_with_locals(child, buf, options, locals, depth)
+          render_node_with_mixins(child, buf, options, locals, mixins, depth)
         }
       }
     }
@@ -232,7 +332,7 @@ fn render_node_with_locals(
         let pairs = parse_json_object_pairs(coll_value)
         if pairs.is_empty() {
           for child in else_body {
-            render_node_with_locals(child, buf, options, locals, depth)
+            render_node_with_mixins(child, buf, options, locals, mixins, depth)
           }
         } else {
           for pair in pairs {
@@ -247,7 +347,9 @@ fn render_node_with_locals(
               loop_locals.set(index_var, key)
             }
             for child in body {
-              render_node_with_locals(child, buf, options, loop_locals, depth)
+              render_node_with_mixins(
+                child, buf, options, loop_locals, mixins, depth,
+              )
             }
           }
         }
@@ -256,7 +358,7 @@ fn render_node_with_locals(
         let items = parse_collection(coll_value)
         if items.is_empty() {
           for child in else_body {
-            render_node_with_locals(child, buf, options, locals, depth)
+            render_node_with_mixins(child, buf, options, locals, mixins, depth)
           }
         } else {
           for i, item in items {
@@ -269,7 +371,9 @@ fn render_node_with_locals(
               loop_locals.set(index_var, i.to_string())
             }
             for child in body {
-              render_node_with_locals(child, buf, options, loop_locals, depth)
+              render_node_with_mixins(
+                child, buf, options, loop_locals, mixins, depth,
+              )
             }
           }
         }
@@ -306,8 +410,28 @@ fn render_node_with_locals(
         match attr.value {
           Some(v) => {
             // Has explicit value (even if empty string)
-            // Process interpolations in attribute values
-            let processed = interpolate_string(v, locals, true)
+            // Check if value is a simple variable reference (no quotes, no #{})
+            // If it looks like an identifier and exists in locals, use the local value
+            let should_escape = not(attr.unescaped)
+            let processed = if v.contains("#{") ||
+              v.contains("\"") ||
+              v.contains("'") ||
+              v.contains("/") ||
+              v.contains(" ") {
+              // Has interpolation or quotes or paths, process normally
+              interpolate_string(v, locals, should_escape)
+            } else {
+              // Might be a variable reference, try to look it up
+              match locals.get(v) {
+                Some(local_val) =>
+                  if should_escape {
+                    escape_html(local_val)
+                  } else {
+                    local_val
+                  }
+                None => if should_escape { escape_html(v) } else { v } // Not a variable, use as literal
+              }
+            }
             buf.write_string("=\"")
             buf.write_string(processed)
             buf.write_string("\"")
@@ -315,7 +439,6 @@ fn render_node_with_locals(
           None => () // Boolean attribute, no value output
         }
       }
-
       if is_void_element(tag) {
         buf.write_string(">")
         buf.write_string(newline)
@@ -344,7 +467,14 @@ fn render_node_with_locals(
         buf.write_string(">")
         buf.write_string(newline)
         for child in children {
-          render_node_with_locals(child, buf, options, locals, depth + 1)
+          render_node_with_mixins(
+            child,
+            buf,
+            options,
+            locals,
+            mixins,
+            depth + 1,
+          )
         }
         buf.write_string(indent)
         buf.write_string("</")
@@ -388,7 +518,8 @@ fn parse_json_array(s : String) -> Array[String] {
   let mut i = 1 // skip [
   while i < chars.length() && chars[i] != ']' {
     // Skip whitespace and commas
-    while i < chars.length() && (chars[i] == ' ' || chars[i] == ',' || chars[i] == '\n') {
+    while i < chars.length() &&
+          (chars[i] == ' ' || chars[i] == ',' || chars[i] == '\n') {
       i += 1
     }
     if i >= chars.length() || chars[i] == ']' {
@@ -451,7 +582,8 @@ fn parse_json_object_pairs(value : String?) -> Array[(String, String)] {
       let mut i = 1 // skip {
       while i < chars.length() && chars[i] != '}' {
         // Skip whitespace and commas
-        while i < chars.length() && (chars[i] == ' ' || chars[i] == ',' || chars[i] == '\n') {
+        while i < chars.length() &&
+              (chars[i] == ' ' || chars[i] == ',' || chars[i] == '\n') {
           i += 1
         }
         if i >= chars.length() || chars[i] == '}' {
@@ -500,7 +632,8 @@ fn parse_json_object_values(s : String) -> Array[String] {
   let mut i = 1 // skip {
   while i < chars.length() && chars[i] != '}' {
     // Skip whitespace and commas
-    while i < chars.length() && (chars[i] == ' ' || chars[i] == ',' || chars[i] == '\n') {
+    while i < chars.length() &&
+          (chars[i] == ' ' || chars[i] == ',' || chars[i] == '\n') {
       i += 1
     }
     if i >= chars.length() || chars[i] == '}' {
@@ -584,11 +717,15 @@ fn evaluate_condition(condition : String, locals : Locals) -> Bool {
 pub fn Document::render_with_locals(
   self : Document,
   locals : Locals,
-  options~ : RenderOptions
+  options~ : RenderOptions,
 ) -> String {
+  // First collect all mixin definitions
+  let mixins = MixinStore::new()
+  collect_mixins(self.iter(), mixins)
+  // Then render all nodes
   let buf = StringBuilder::new()
   for node in self.iter() {
-    render_node_with_locals(node, buf, options, locals, 0)
+    render_node_with_mixins(node, buf, options, locals, mixins, 0)
   }
   buf.to_string()
 }
@@ -627,7 +764,7 @@ pub fn compile(input : String) -> CompiledTemplate {
 /// Render a compiled template with locals
 pub fn CompiledTemplate::render(
   self : CompiledTemplate,
-  locals : Locals
+  locals : Locals,
 ) -> String {
   self.doc.render_with_locals(locals, options=RenderOptions::default())
 }
@@ -637,7 +774,7 @@ pub fn CompiledTemplate::render(
 pub fn CompiledTemplate::render_with_options(
   self : CompiledTemplate,
   locals : Locals,
-  options : RenderOptions
+  options : RenderOptions,
 ) -> String {
   self.doc.render_with_locals(locals, options~)
 }

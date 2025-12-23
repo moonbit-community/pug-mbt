@@ -34,6 +34,7 @@ fn Parser::advance(self : Parser) -> Token? {
 fn Parser::skip_newlines(self : Parser) -> Unit {
   while self.peek() is Some(Newline) {
     let _ = self.advance()
+
   }
 }
 
@@ -72,6 +73,7 @@ fn Parser::parse_inline_element(self : Parser) -> Node? {
     tag = t
     has_explicit_tag = true
     let _ = self.advance()
+
   }
 
   // Parse id and classes
@@ -80,10 +82,12 @@ fn Parser::parse_inline_element(self : Parser) -> Node? {
       Some(Id(i)) => {
         id = i
         let _ = self.advance()
+
       }
       Some(Class(c)) => {
         classes.push(c)
         let _ = self.advance()
+
       }
       _ => break
     }
@@ -97,14 +101,24 @@ fn Parser::parse_inline_element(self : Parser) -> Node? {
         Some(AttrName(name)) => {
           let _ = self.advance()
           let mut value : String? = None
-          if self.peek() is Some(Equals) {
+          let mut unescaped = false
+          if self.peek() is Some(UnescapedEquals) {
+            let _ = self.advance()
+            unescaped = true
+            if self.peek() is Some(AttrValue(v)) {
+              value = Some(v)
+              let _ = self.advance()
+
+            }
+          } else if self.peek() is Some(Equals) {
             let _ = self.advance()
             if self.peek() is Some(AttrValue(v)) {
               value = Some(v)
               let _ = self.advance()
+
             }
           }
-          attributes.push({ name, value })
+          attributes.push({ name, value, unescaped })
         }
         Some(RParen) => {
           let _ = self.advance()
@@ -114,7 +128,6 @@ fn Parser::parse_inline_element(self : Parser) -> Node? {
       }
     }
   }
-
   let children : Array[Node] = []
 
   // Handle chained block expansion
@@ -133,14 +146,17 @@ fn Parser::parse_inline_element(self : Parser) -> Node? {
       Some(Text(t)) => {
         children.push(Text(t))
         let _ = self.advance()
+
       }
       Some(Token::Interpolation(name)) => {
         children.push(Node::Interpolation(name))
         let _ = self.advance()
+
       }
       Some(Token::UnescapedInterpolation(name)) => {
         children.push(Node::UnescapedInterpolation(name))
         let _ = self.advance()
+
       }
       Some(Token::TagInterpolation(content)) => {
         match parse_tag_interpolation(content) {
@@ -148,16 +164,20 @@ fn Parser::parse_inline_element(self : Parser) -> Node? {
           None => ()
         }
         let _ = self.advance()
+
       }
       _ => break
     }
   }
 
   // If no content at all, return None
-  if not(has_explicit_tag) && id == "" && classes.is_empty() && attributes.is_empty() && children.is_empty() {
+  if not(has_explicit_tag) &&
+    id == "" &&
+    classes.is_empty() &&
+    attributes.is_empty() &&
+    children.is_empty() {
     return None
   }
-
   Some(Element(tag~, id~, classes~, attributes~, children~))
 }
 
@@ -258,6 +278,15 @@ fn Parser::parse_element(self : Parser) -> Node? {
       }
       return Some(Default(body=default_body))
     }
+    Some(Token::MixinDef(name, params)) => {
+      let _ = self.advance()
+      // Body will be added by build_tree
+      return Some(MixinDef(name~, params~, body=[]))
+    }
+    Some(Token::MixinCall(name, args)) => {
+      let _ = self.advance()
+      return Some(MixinCall(name~, args~))
+    }
     _ => ()
   }
 
@@ -266,6 +295,7 @@ fn Parser::parse_element(self : Parser) -> Node? {
     tag = t
     has_explicit_tag = true
     let _ = self.advance()
+
   }
 
   // Parse id and classes
@@ -274,10 +304,12 @@ fn Parser::parse_element(self : Parser) -> Node? {
       Some(Id(i)) => {
         id = i
         let _ = self.advance()
+
       }
       Some(Class(c)) => {
         classes.push(c)
         let _ = self.advance()
+
       }
       _ => break
     }
@@ -291,14 +323,24 @@ fn Parser::parse_element(self : Parser) -> Node? {
         Some(AttrName(name)) => {
           let _ = self.advance()
           let mut value : String? = None // Boolean attribute by default
-          if self.peek() is Some(Equals) {
+          let mut unescaped = false
+          if self.peek() is Some(UnescapedEquals) {
+            let _ = self.advance()
+            unescaped = true
+            if self.peek() is Some(AttrValue(v)) {
+              value = Some(v)
+              let _ = self.advance()
+
+            }
+          } else if self.peek() is Some(Equals) {
             let _ = self.advance()
             if self.peek() is Some(AttrValue(v)) {
               value = Some(v) // Has explicit value (even if empty)
               let _ = self.advance()
+
             }
           }
-          attributes.push({ name, value })
+          attributes.push({ name, value, unescaped })
         }
         Some(RParen) => {
           let _ = self.advance()
@@ -330,20 +372,35 @@ fn Parser::parse_element(self : Parser) -> Node? {
     is_block_text = true
   }
 
-  // Parse text, interpolation, and tag interpolation tokens as inline children
+  // Parse text, interpolation, buffered output, and tag interpolation tokens as inline children
   while true {
     match self.peek() {
       Some(Text(t)) => {
         children.push(Text(t))
         let _ = self.advance()
+
       }
       Some(Token::Interpolation(name)) => {
         children.push(Node::Interpolation(name))
         let _ = self.advance()
+
       }
       Some(Token::UnescapedInterpolation(name)) => {
         children.push(Node::UnescapedInterpolation(name))
         let _ = self.advance()
+
+      }
+      Some(Token::BufferedOutput(variable)) => {
+        // Buffered output = variable outputs the variable value as content (escaped)
+        children.push(Node::Interpolation(variable))
+        let _ = self.advance()
+
+      }
+      Some(Token::UnescapedBufferedOutput(variable)) => {
+        // Unescaped buffered output != variable outputs the variable value as content (raw)
+        children.push(Node::UnescapedInterpolation(variable))
+        let _ = self.advance()
+
       }
       Some(Token::TagInterpolation(content)) => {
         match parse_tag_interpolation(content) {
@@ -351,6 +408,7 @@ fn Parser::parse_element(self : Parser) -> Node? {
           None => ()
         }
         let _ = self.advance()
+
       }
       _ => break
     }
@@ -360,6 +418,7 @@ fn Parser::parse_element(self : Parser) -> Node? {
   match self.peek() {
     Some(Newline) | Some(EOF) => {
       let _ = self.advance()
+
     }
     _ => ()
   }
@@ -381,12 +440,13 @@ fn Parser::parse_element(self : Parser) -> Node? {
       return Some(children[0])
     } else if children.length() > 1 {
       // Multiple inline children without a tag - wrap in implicit div
-      return Some(Element(tag="div", id="", classes=[], attributes=[], children~))
+      return Some(
+        Element(tag="div", id="", classes=[], attributes=[], children~),
+      )
     } else {
       return None
     }
   }
-
   Some(Element(tag~, id~, classes~, attributes~, children~))
 }
 
@@ -401,10 +461,8 @@ priv struct ParsedLine {
 /// Parse all lines into flat list with indentation info
 fn Parser::parse_lines(self : Parser) -> Array[ParsedLine] {
   let lines : Array[ParsedLine] = []
-
   while self.pos < self.tokens.length() {
     self.skip_newlines()
-
     if self.peek() is Some(EOF) || self.peek() is None {
       break
     }
@@ -430,7 +488,6 @@ fn Parser::parse_lines(self : Parser) -> Array[ParsedLine] {
       None => () // Skip unbuffered comments, etc.
     }
   }
-
   lines
 }
 
@@ -440,14 +497,12 @@ fn build_tree(lines : Array[ParsedLine]) -> Array[Node] {
   if lines.is_empty() {
     return []
   }
-
   let result : Array[Node] = []
   let stack : Array[(Int, Node)] = [] // (indent, node) pairs
   // Track recent conditionals at each indent level for else linking
   let recent_conditionals : Map[Int, Node] = {}
   // Track recent Each nodes at each indent level for else linking
   let recent_each : Map[Int, Node] = {}
-
   for line in lines {
     let indent = line.indent
     let node = line.node
@@ -482,21 +537,18 @@ fn build_tree(lines : Array[ParsedLine]) -> Array[Node] {
     if is_else_marker(node) {
       // First check for recent Each at this indent (each ... else for empty collection)
       match recent_each.get(indent) {
-        Some(_) => {
+        Some(_) =>
           // The else marker's children will be collected, then added to Each's else_body
           stack.push((indent, node))
-        }
         None =>
           // Otherwise check for recent conditional at this indent
           match recent_conditionals.get(indent) {
-            Some(_) => {
+            Some(_) =>
               // The else marker's children will be collected, then added to if_false
               stack.push((indent, node))
-            }
-            None => {
+            None =>
               // No matching if/each - just ignore
               ()
-            }
           }
       }
       continue
@@ -504,33 +556,28 @@ fn build_tree(lines : Array[ParsedLine]) -> Array[Node] {
 
     // Handle else if - similar to else but it's a new conditional
     match node {
-      Conditional(condition~, ..) if condition != "__else__" => {
+      Conditional(condition~, ..) if condition != "__else__" =>
         // Check if there's a recent conditional at this indent to link to
         match recent_conditionals.get(indent) {
-          Some(prev_cond) => {
+          Some(prev_cond) =>
             // This else-if should be added to prev_cond's if_false
             // But first process it as a child collector
             match prev_cond {
-              Conditional(if_false~, ..) => {
+              Conditional(if_false~, ..) =>
                 // The else-if becomes nested in if_false
                 // Push to stack to collect its children
                 stack.push((indent, node))
-                // Mark this indent as having a new conditional
-                // It will be properly linked when popped
-              }
+              // Mark this indent as having a new conditional
+              // It will be properly linked when popped
               _ => stack.push((indent, node))
             }
-          }
-          None => {
+          None =>
             // No previous if - this is a standalone if
             stack.push((indent, node))
-          }
         }
-      }
-      _ => {
+      _ =>
         // Regular node - push to stack
         stack.push((indent, node))
-      }
     }
   }
 
@@ -571,12 +618,11 @@ fn build_tree(lines : Array[ParsedLine]) -> Array[Node] {
       result.push(completed)
     }
   }
-
   result
 }
 
 ///|
-/// Add a child to an Element, Conditional, Each, When, Default, or Case node
+/// Add a child to an Element, Conditional, Each, When, Default, Case, or MixinDef node
 fn add_child(parent : Node, child : Node) -> Unit {
   match parent {
     Element(children~, ..) => children.push(child)
@@ -584,15 +630,15 @@ fn add_child(parent : Node, child : Node) -> Unit {
     Each(body~, ..) => body.push(child)
     When(body~, ..) => body.push(child)
     Default(body~) => body.push(child)
+    MixinDef(body~, ..) => body.push(child)
     Case(cases~, default~, ..) =>
       // Add When/Default as case branches
       match child {
         When(value~, body~) => cases.push((value, body))
-        Default(body~) => {
+        Default(body~) =>
           for node in body {
             default.push(node)
           }
-        }
         _ => () // Can't add other children to Case directly
       }
     _ => () // Can't add children to other node types
@@ -624,11 +670,10 @@ fn is_each_node(node : Node) -> Bool {
 /// Add else branch to a conditional
 fn add_else_branch(cond : Node, else_children : Array[Node]) -> Unit {
   match cond {
-    Conditional(if_false~, ..) => {
+    Conditional(if_false~, ..) =>
       for child in else_children {
         if_false.push(child)
       }
-    }
     _ => ()
   }
 }
@@ -637,11 +682,10 @@ fn add_else_branch(cond : Node, else_children : Array[Node]) -> Unit {
 /// Add else branch to an Each loop (for empty collection fallback)
 fn add_each_else_branch(each_node : Node, else_children : Array[Node]) -> Unit {
   match each_node {
-    Each(else_body~, ..) => {
+    Each(else_body~, ..) =>
       for child in else_children {
         else_body.push(child)
       }
-    }
     _ => ()
   }
 }

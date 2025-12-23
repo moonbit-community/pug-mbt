@@ -19,6 +19,7 @@ Part of the [Agentic Adventures of MoonBit (AAoM)](https://github.com/user/aaom-
 ## Usage
 
 ```moonbit check
+///|
 test "usage example" {
   let pug =
     #|doctype html
@@ -31,10 +32,14 @@ test "usage example" {
 
   // Render to compact HTML
   let html = @pug.render(pug)
-  inspect(html, content="<!DOCTYPE html><html><head><title>Hello Pug</title></head><body><h1 id=\"greeting\" class=\"title\">Hello, World!</h1><p>This is rendered from Pug.</p></body></html>")
+  inspect(
+    html,
+    content="<!DOCTYPE html><html><head><title>Hello Pug</title></head><body><h1 id=\"greeting\" class=\"title\">Hello, World!</h1><p>This is rendered from Pug.</p></body></html>",
+  )
 
   // Render to pretty-printed HTML
   let _pretty_html = @pug.render_pretty(pug)
+
 }
 ```
 
@@ -107,6 +112,7 @@ p Welcome to #{place}
 For reusable templates, use the compile API:
 
 ```moonbit check
+///|
 test "compile api" {
   // Compile template once
   let template = @pug.compile("p Hello #{name}!")
@@ -115,7 +121,6 @@ test "compile api" {
   let locals1 = @pug.Locals::new()
   locals1.set("name", "Alice")
   inspect(template.render(locals1), content="<p>Hello Alice!</p>")
-
   let locals2 = @pug.Locals::new()
   locals2.set("name", "Bob")
   inspect(template.render(locals2), content="<p>Hello Bob!</p>")
@@ -125,6 +130,7 @@ test "compile api" {
 Or render directly with locals:
 
 ```moonbit check
+///|
 test "render with locals" {
   let locals = @pug.Locals::new()
   locals.set("name", "World")

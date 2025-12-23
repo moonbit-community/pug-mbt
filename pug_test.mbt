@@ -54,7 +54,9 @@ test "tag with attributes" {
 
 ///|
 test "tag with multiple attributes" {
-  let html = render("input(type=\"text\", name=\"username\", placeholder=\"Enter name\")")
+  let html = render(
+    "input(type=\"text\", name=\"username\", placeholder=\"Enter name\")",
+  )
   inspect(
     html,
     content="<input type=\"text\" name=\"username\" placeholder=\"Enter name\">",
@@ -173,7 +175,6 @@ test "compile and render" {
   locals1.set("name", "Alice")
   let html1 = template.render(locals1)
   inspect(html1, content="<p>Hello Alice!</p>")
-
   let locals2 = Locals::new()
   locals2.set("name", "Bob")
   let html2 = template.render(locals2)
@@ -192,4 +193,3 @@ test "interpolation in nested elements" {
   let html = render_with_locals(pug, locals)
   inspect(html, content="<div><p>Hello User</p><p>Welcome to MoonBit</p></div>")
 }
-

@@ -29,10 +29,7 @@ test "chained block expansion" {
 ///|
 test "block expansion with class" {
   let html = render("ul.menu: li.item First")
-  inspect(
-    html,
-    content="<ul class=\"menu\"><li class=\"item\">First</li></ul>",
-  )
+  inspect(html, content="<ul class=\"menu\"><li class=\"item\">First</li></ul>")
 }
 
 ///|

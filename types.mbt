@@ -3,6 +3,7 @@
 pub struct Attribute {
   name : String
   value : String? // None for boolean attributes, Some("") for empty values
+  unescaped : Bool // True for != syntax, false for = syntax
 } derive(Show, Eq)
 
 ///|
@@ -29,7 +30,7 @@ pub fn Locals::set(self : Locals, key : String, value : String) -> Unit {
 pub fn Locals::set_array(
   self : Locals,
   key : String,
-  values : Array[String]
+  values : Array[String],
 ) -> Unit {
   // Store as JSON-like array representation for now
   let buf = StringBuilder::new()
@@ -51,7 +52,7 @@ pub fn Locals::set_array(
 pub fn Locals::set_object(
   self : Locals,
   key : String,
-  obj : Map[String, String]
+  obj : Map[String, String],
 ) -> Unit {
   // Store as JSON-like object representation for now
   let buf = StringBuilder::new()
@@ -77,7 +78,7 @@ pub fn Locals::set_object(
 pub fn Locals::set_nested_array(
   self : Locals,
   key : String,
-  rows : Array[Array[String]]
+  rows : Array[Array[String]],
 ) -> Unit {
   // Store as JSON-like nested array representation for now
   let buf = StringBuilder::new()
@@ -110,7 +111,7 @@ pub enum Node {
     id~ : String,
     classes~ : Array[String],
     attributes~ : Array[Attribute],
-    children~ : Array[Node],
+    children~ : Array[Node]
   )
   /// Plain text content
   Text(String)
@@ -127,7 +128,7 @@ pub enum Node {
     condition~ : String,
     if_true~ : Array[Node],
     if_false~ : Array[Node],
-    is_unless~ : Bool,
+    is_unless~ : Bool
   )
   /// Each loop (each item in collection)
   Each(
@@ -135,18 +136,22 @@ pub enum Node {
     index_var~ : String, // Empty string if no index variable
     collection~ : String,
     body~ : Array[Node],
-    else_body~ : Array[Node], // For "each ... else" when collection is empty
-  )
+    else_body~ : Array[Node]
+  ) // For "each ... else" when collection is empty
   /// Case/switch statement
   Case(
     expr~ : String, // Variable to match against
     cases~ : Array[(String, Array[Node])], // (value, body) pairs for when clauses
-    default~ : Array[Node], // Default case body
-  )
+    default~ : Array[Node]
+  ) // Default case body
   /// When clause (used during parsing, not in final AST)
   When(value~ : String, body~ : Array[Node])
   /// Default clause (used during parsing, not in final AST)
   Default(body~ : Array[Node])
+  /// Mixin definition
+  MixinDef(name~ : String, params~ : Array[String], body~ : Array[Node])
+  /// Mixin call
+  MixinCall(name~ : String, args~ : Array[String])
 } derive(Show, Eq)
 
 ///|

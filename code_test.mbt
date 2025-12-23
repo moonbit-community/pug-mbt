@@ -14,7 +14,6 @@ test "unbuffered code variable" {
 }
 
 ///|
-#skip
 test "buffered code output" {
   let pug =
     #|p= message
@@ -25,7 +24,6 @@ test "buffered code output" {
 }
 
 ///|
-#skip
 test "buffered code escapes html" {
   let pug =
     #|p= content
@@ -39,7 +37,6 @@ test "buffered code escapes html" {
 }
 
 ///|
-#skip
 test "unescaped buffered code" {
   let pug =
     #|p!= content
@@ -50,7 +47,6 @@ test "unescaped buffered code" {
 }
 
 ///|
-#skip
 test "inline buffered code" {
   let pug =
     #|p The answer is #{answer}

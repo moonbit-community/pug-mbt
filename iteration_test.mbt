@@ -12,10 +12,7 @@ test "each over array" {
   let locals = Locals::new()
   locals.set_array("items", ["Apple", "Banana", "Cherry"])
   let html = render_with_locals(pug, locals)
-  inspect(
-    html,
-    content="<ul><li>Apple</li><li>Banana</li><li>Cherry</li></ul>",
-  )
+  inspect(html, content="<ul><li>Apple</li><li>Banana</li><li>Cherry</li></ul>")
 }
 
 ///|

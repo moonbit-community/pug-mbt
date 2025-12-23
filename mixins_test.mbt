@@ -4,7 +4,6 @@
 /// TODO: Implement mixins in lexer/parser
 
 ///|
-#skip
 test "simple mixin definition and call" {
   let pug =
     #|mixin list
@@ -17,7 +16,6 @@ test "simple mixin definition and call" {
 }
 
 ///|
-#skip
 test "mixin with argument" {
   let pug =
     #|mixin pet(name)
@@ -33,7 +31,6 @@ test "mixin with argument" {
 }
 
 ///|
-#skip
 test "mixin with multiple arguments" {
   let pug =
     #|mixin link(href, text)
@@ -41,7 +38,10 @@ test "mixin with multiple arguments" {
     #|+link("/home", "Home")
     #|+link("/about", "About")
   let html = render(pug)
-  inspect(html, content="<a href=\"/home\">Home</a><a href=\"/about\">About</a>")
+  inspect(
+    html,
+    content="<a href=\"/home\">Home</a><a href=\"/about\">About</a>",
+  )
 }
 
 ///|
@@ -102,7 +102,6 @@ test "mixin with rest arguments" {
 }
 
 ///|
-#skip
 test "multiple mixin calls" {
   let pug =
     #|mixin item(text)

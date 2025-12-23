@@ -74,8 +74,5 @@ test "pre block preserves whitespace" {
     #|    return 'world';
     #|  }
   let html = render(pug)
-  inspect(
-    html,
-    content="<pre>function hello() {\n  return 'world';\n}</pre>",
-  )
+  inspect(html, content="<pre>function hello() {\n  return 'world';\n}</pre>")
 }

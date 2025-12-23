@@ -25,8 +25,10 @@ pub enum Token {
   LParen
   /// End of attributes )
   RParen
-  /// Equals sign for attribute value
+  /// Equals sign for attribute value (escaped)
   Equals
+  /// Unescaped equals sign for attribute value !=
+  UnescapedEquals
   /// Newline
   Newline
   /// Comment //
@@ -59,6 +61,14 @@ pub enum Token {
   When(String)
   /// Default clause
   Default
+  /// Mixin definition: (name, params)
+  MixinDef(String, Array[String])
+  /// Mixin call: (name, args)
+  MixinCall(String, Array[String])
+  /// Buffered output: = variable (outputs variable value as content, escaped)
+  BufferedOutput(String)
+  /// Unescaped buffered output: != variable (outputs variable value as content, raw)
+  UnescapedBufferedOutput(String)
   /// End of input
   EOF
 } derive(Show, Eq)
@@ -135,6 +145,7 @@ fn Lexer::advance(self : Lexer) -> Char? {
 fn Lexer::skip_while(self : Lexer, pred : (Char) -> Bool) -> Unit {
   while self.peek() is Some(c) && pred(c) {
     let _ = self.advance()
+
   }
 }
 
@@ -144,6 +155,7 @@ fn Lexer::take_while(self : Lexer, pred : (Char) -> Bool) -> String {
   while self.peek() is Some(c) && pred(c) {
     buf.write_char(c)
     let _ = self.advance()
+
   }
   buf.to_string()
 }
@@ -156,9 +168,11 @@ fn Lexer::read_indent(self : Lexer) -> Int {
     if c == ' ' {
       count += 1
       let _ = self.advance()
+
     } else if c == '\t' {
       count += 2 // treat tab as 2 spaces
       let _ = self.advance()
+
     } else {
       break
     }
@@ -212,6 +226,7 @@ fn Lexer::starts_with(self : Lexer, s : String) -> Bool {
 fn Lexer::skip_n(self : Lexer, n : Int) -> Unit {
   for _ in 0..<n {
     let _ = self.advance()
+
   }
 }
 
@@ -244,6 +259,7 @@ fn Lexer::read_tag_interpolation(self : Lexer) -> String {
         depth += 1
         buf.write_char('[')
         let _ = self.advance()
+
       }
       Some(']') => {
         depth -= 1
@@ -251,16 +267,88 @@ fn Lexer::read_tag_interpolation(self : Lexer) -> String {
           buf.write_char(']')
         }
         let _ = self.advance()
+
       }
       Some('\n') => break // Don't cross line boundaries
       Some(c) => {
         buf.write_char(c)
         let _ = self.advance()
+
       }
       None => break
     }
   }
   buf.to_string()
+}
+
+///|
+/// Parse mixin definition: name or name(param1, param2, ...)
+fn Lexer::parse_mixin_def(self : Lexer) -> (String, Array[String]) {
+  let name = self.take_while(is_tag_char)
+  let params : Array[String] = []
+  if self.peek() is Some('(') {
+    let _ = self.advance() // consume (
+    while self.peek() is Some(c) && c != ')' {
+      self.skip_while(fn(c) { c == ' ' || c == ',' })
+      if self.peek() is Some(')') {
+        break
+      }
+      let param = self.take_while(is_tag_char)
+      if param.length() > 0 {
+        params.push(param)
+      }
+    }
+    if self.peek() is Some(')') {
+      let _ = self.advance()
+       // consume )
+    }
+  }
+  (name, params)
+}
+
+///|
+/// Parse mixin call arguments: (arg1, arg2, ...)
+fn Lexer::parse_mixin_args(self : Lexer) -> Array[String] {
+  let args : Array[String] = []
+  if self.peek() is Some('(') {
+    let _ = self.advance() // consume (
+    while self.peek() is Some(c) && c != ')' {
+      self.skip_while(fn(c) { c == ' ' || c == ',' })
+      if self.peek() is Some(')') {
+        break
+      }
+      // Read argument (quoted or unquoted)
+      let arg = match self.peek() {
+        Some('"') => {
+          let _ = self.advance() // skip opening "
+          let value = self.take_while(fn(c) { c != '"' })
+          if self.peek() is Some('"') {
+            let _ = self.advance()
+             // skip closing "
+          }
+          value
+        }
+        Some('\'') => {
+          let _ = self.advance() // skip opening '
+          let value = self.take_while(fn(c) { c != '\'' })
+          if self.peek() is Some('\'') {
+            let _ = self.advance()
+             // skip closing '
+          }
+          value
+        }
+        _ => self.take_while(fn(c) { c != ',' && c != ')' && c != ' ' })
+      }
+      if arg.length() > 0 {
+        args.push(arg)
+      }
+    }
+    if self.peek() is Some(')') {
+      let _ = self.advance()
+       // consume )
+    }
+  }
+  args
 }
 
 ///|
@@ -271,7 +359,8 @@ fn Lexer::read_when_value(self : Lexer) -> String {
       let _ = self.advance() // consume opening quote
       let value = self.take_while(fn(c) { c != '"' })
       if self.peek() is Some('"') {
-        let _ = self.advance() // consume closing quote
+        let _ = self.advance()
+         // consume closing quote
       }
       value
     }
@@ -279,7 +368,8 @@ fn Lexer::read_when_value(self : Lexer) -> String {
       let _ = self.advance() // consume opening quote
       let value = self.take_while(fn(c) { c != '\'' })
       if self.peek() is Some('\'') {
-        let _ = self.advance() // consume closing quote
+        let _ = self.advance()
+         // consume closing quote
       }
       value
     }
@@ -314,7 +404,7 @@ fn Lexer::parse_each_header(self : Lexer) -> (String, String, String) {
 /// Parse text with interpolations, returning alternating Text/Interpolation tokens
 fn Lexer::parse_text_with_interpolations(
   self : Lexer,
-  tokens : Array[Token]
+  tokens : Array[Token],
 ) -> Unit {
   let buf = StringBuilder::new()
   while self.peek() is Some(c) && c != '\n' {
@@ -341,7 +431,8 @@ fn Lexer::parse_text_with_interpolations(
       // Read until closing }
       let expr = self.take_while(fn(c) { c != '}' && c != '\n' })
       if self.peek() is Some('}') {
-        let _ = self.advance() // consume }
+        let _ = self.advance()
+         // consume }
       }
       tokens.push(Interpolation(expr))
     } else if c == '!' && self.peek_ahead(1) is Some('{') {
@@ -356,12 +447,14 @@ fn Lexer::parse_text_with_interpolations(
       // Read until closing }
       let expr = self.take_while(fn(c) { c != '}' && c != '\n' })
       if self.peek() is Some('}') {
-        let _ = self.advance() // consume }
+        let _ = self.advance()
+         // consume }
       }
       tokens.push(UnescapedInterpolation(expr))
     } else {
       buf.write_char(c)
       let _ = self.advance()
+
     }
   }
   // Flush remaining text
@@ -403,6 +496,7 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
     // Skip optional space after |
     if self.peek() is Some(' ') {
       let _ = self.advance()
+
     }
     let text = self.read_line_text()
     tokens.push(PipedText(text))
@@ -419,7 +513,8 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
     let _ = self.advance() // consume second /
     let is_unbuffered = self.peek() is Some('-')
     if is_unbuffered {
-      let _ = self.advance() // consume -
+      let _ = self.advance()
+       // consume -
     }
     let text = trim_leading_space(self.read_line_text())
     // If text is empty, this is a block comment marker
@@ -467,7 +562,6 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
     }
     return tokens
   }
-
   if self.starts_with("else if ") {
     self.skip_n(8) // consume "else if "
     let condition = self.read_line_text()
@@ -478,7 +572,6 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
     }
     return tokens
   }
-
   if self.starts_with("else") &&
     (self.peek_ahead(4) is Some('\n') || self.peek_ahead(4) is None) {
     self.skip_n(4) // consume "else"
@@ -489,7 +582,6 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
     }
     return tokens
   }
-
   if self.starts_with("unless ") {
     self.skip_n(7) // consume "unless "
     let condition = self.read_line_text()
@@ -508,6 +600,35 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
     // Parse: item [, index] in collection
     let (item_var, index_var, collection) = self.parse_each_header()
     tokens.push(Each(item_var, index_var, collection))
+    if self.peek() is Some('\n') {
+      let _ = self.advance()
+      tokens.push(Newline)
+    }
+    return tokens
+  }
+
+  // Check for mixin definition
+  if self.starts_with("mixin ") {
+    self.skip_n(6) // consume "mixin "
+    let (name, params) = self.parse_mixin_def()
+    tokens.push(MixinDef(name, params))
+    if self.peek() is Some('\n') {
+      let _ = self.advance()
+      tokens.push(Newline)
+    }
+    return tokens
+  }
+
+  // Check for mixin call (+name or +name(args))
+  if self.peek() is Some('+') {
+    let _ = self.advance() // consume +
+    let name = self.take_while(is_tag_char)
+    let args = if self.peek() is Some('(') {
+      self.parse_mixin_args()
+    } else {
+      []
+    }
+    tokens.push(MixinCall(name, args))
     if self.peek() is Some('\n') {
       let _ = self.advance()
       tokens.push(Newline)
@@ -538,6 +659,7 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
       tokens.push(BlockExpand)
       if self.peek() is Some(' ') {
         let _ = self.advance()
+
       }
       // Parse inline element after block expansion (same as regular element handling)
       match self.peek() {
@@ -578,9 +700,11 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
 
   // Check for default clause
   if self.starts_with("default") &&
-    (self.peek_ahead(7) is Some('\n') ||
+    (
+      self.peek_ahead(7) is Some('\n') ||
       self.peek_ahead(7) is Some(':') ||
-      self.peek_ahead(7) is None) {
+      self.peek_ahead(7) is None
+    ) {
     self.skip_n(7) // consume "default"
     tokens.push(Default)
     // Check for block expansion (:) after default - continue parsing inline content
@@ -589,6 +713,7 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
       tokens.push(BlockExpand)
       if self.peek() is Some(' ') {
         let _ = self.advance()
+
       }
       // Parse inline element after block expansion
       match self.peek() {
@@ -644,7 +769,7 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
         let id = self.take_while(is_id_class_char)
         tokens.push(Id(id))
       }
-      Some('.') => {
+      Some('.') =>
         // Check if this is a block text marker (. followed by newline or EOF)
         match self.peek_ahead(1) {
           None | Some('\n') => break // Let block text marker handling take over
@@ -654,7 +779,6 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
             tokens.push(Class(cls))
           }
         }
-      }
       _ => break
     }
   }
@@ -663,11 +787,9 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
   if self.peek() is Some('(') {
     let _ = self.advance()
     tokens.push(LParen)
-
     while self.peek() is Some(c) && c != ')' {
       // Skip whitespace and commas
       self.skip_while(fn(c) { c == ' ' || c == ',' || c == '\t' })
-
       if self.peek() is Some(')') {
         break
       }
@@ -677,9 +799,17 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
       if attr_name.length() > 0 {
         tokens.push(AttrName(attr_name))
 
-        // Check for = and value
+        // Check for != (unescaped) or = (escaped) and value
         self.skip_while(fn(c) { c == ' ' })
-        if self.peek() is Some('=') {
+        if self.peek() is Some('!') && self.peek_ahead(1) is Some('=') {
+          // Unescaped attribute !=
+          let _ = self.advance() // consume !
+          let _ = self.advance() // consume =
+          tokens.push(UnescapedEquals)
+          self.skip_while(fn(c) { c == ' ' })
+          let value = self.read_attr_value()
+          tokens.push(AttrValue(value))
+        } else if self.peek() is Some('=') {
           let _ = self.advance()
           tokens.push(Equals)
           self.skip_while(fn(c) { c == ' ' })
@@ -688,7 +818,6 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
         }
       }
     }
-
     if self.peek() is Some(')') {
       let _ = self.advance()
       tokens.push(RParen)
@@ -702,6 +831,7 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
     // Skip optional space after :
     if self.peek() is Some(' ') {
       let _ = self.advance()
+
     }
     // Continue parsing rest of line as nested element
     // Parse tag name (optional - default is div)
@@ -741,7 +871,14 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
         if attr_name.length() > 0 {
           tokens.push(AttrName(attr_name))
           self.skip_while(fn(c) { c == ' ' })
-          if self.peek() is Some('=') {
+          if self.peek() is Some('!') && self.peek_ahead(1) is Some('=') {
+            let _ = self.advance() // consume !
+            let _ = self.advance() // consume =
+            tokens.push(UnescapedEquals)
+            self.skip_while(fn(c) { c == ' ' })
+            let value = self.read_attr_value()
+            tokens.push(AttrValue(value))
+          } else if self.peek() is Some('=') {
             let _ = self.advance()
             tokens.push(Equals)
             self.skip_while(fn(c) { c == ' ' })
@@ -770,10 +907,46 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
   }
 
   // Check for block text marker (.)
-  if self.peek() is Some('.') && (self.peek_ahead(1) is Some('\n') || self.peek_ahead(1) is None) {
+  if self.peek() is Some('.') &&
+    (self.peek_ahead(1) is Some('\n') || self.peek_ahead(1) is None) {
     let _ = self.advance() // consume .
     tokens.push(BlockTextMarker)
     // Consume newline if present
+    if self.peek() is Some('\n') {
+      let _ = self.advance()
+      tokens.push(Newline)
+    }
+    return tokens
+  }
+
+  // Check for unescaped buffered output (!= variable)
+  if self.peek() is Some('!') && self.peek_ahead(1) is Some('=') {
+    let _ = self.advance() // consume !
+    let _ = self.advance() // consume =
+    // Skip optional space after !=
+    if self.peek() is Some(' ') {
+      let _ = self.advance()
+
+    }
+    let variable = self.read_line_text().trim(chars=" \t").to_string()
+    tokens.push(UnescapedBufferedOutput(variable))
+    if self.peek() is Some('\n') {
+      let _ = self.advance()
+      tokens.push(Newline)
+    }
+    return tokens
+  }
+
+  // Check for buffered output (= variable)
+  if self.peek() is Some('=') {
+    let _ = self.advance() // consume =
+    // Skip optional space after =
+    if self.peek() is Some(' ') {
+      let _ = self.advance()
+
+    }
+    let variable = self.read_line_text().trim(chars=" \t").to_string()
+    tokens.push(BufferedOutput(variable))
     if self.peek() is Some('\n') {
       let _ = self.advance()
       tokens.push(Newline)
@@ -794,7 +967,6 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
   } else if self.peek() is None {
     tokens.push(EOF)
   }
-
   tokens
 }
 
@@ -814,6 +986,7 @@ fn Lexer::read_block_text(self : Lexer, base_indent : Int) -> String {
         line_indent += 2
       }
       let _ = self.advance()
+
     }
     // If line is empty (just newline), include it but continue
     if self.peek() is Some('\n') {
@@ -843,6 +1016,7 @@ fn Lexer::read_block_text(self : Lexer, base_indent : Int) -> String {
     // Consume newline
     if self.peek() is Some('\n') {
       let _ = self.advance()
+
     }
   }
   buf.to_string()
