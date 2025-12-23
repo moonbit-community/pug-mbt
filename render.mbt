@@ -1060,3 +1060,367 @@ pub fn render_with_locals(input : String, locals : Locals) -> String {
 pub fn render_pretty(input : String) -> String {
   parse(input).to_pretty_html()
 }
+
+///|
+/// Collect named blocks from a document (for extends support)
+fn collect_child_blocks(
+  nodes : Iter[Node],
+  blocks : Map[String, (Array[Node], String)],
+) -> Unit {
+  for node in nodes {
+    match node {
+      NamedBlock(name~, body~, mode~) => blocks[name] = (body, mode)
+      Element(children~, ..) => collect_child_blocks(children.iter(), blocks)
+      Conditional(if_true~, if_false~, ..) => {
+        collect_child_blocks(if_true.iter(), blocks)
+        collect_child_blocks(if_false.iter(), blocks)
+      }
+      _ => ()
+    }
+  }
+}
+
+///|
+/// Find extends declaration in document (should be first node)
+fn find_extends(doc : Document) -> String? {
+  for node in doc.iter() {
+    match node {
+      Extends(path~) => return Some(path)
+      _ => ()
+    }
+  }
+  None
+}
+
+///|
+/// Render a node with registry support for includes
+fn render_node_with_registry(
+  node : Node,
+  buf : StringBuilder,
+  options : RenderOptions,
+  locals : Locals,
+  mixins : MixinStore,
+  blocks : BlockStore,
+  child_blocks : Map[String, (Array[Node], String)],
+  registry : TemplateRegistry,
+  depth : Int,
+  block_content : Array[Node],
+  visited : Map[String, Bool],
+) -> Unit {
+  let indent = if options.pretty {
+    let mut s = ""
+    for _ in 0..<depth {
+      s = s + options.indent_str
+    }
+    s
+  } else {
+    ""
+  }
+  let newline = if options.pretty { "\n" } else { "" }
+  match node {
+    Include(path~) =>
+      // Load and render included template
+      match registry.get(path) {
+        Some(source) =>
+          // Check for circular includes
+          if visited.contains(path) {
+            buf.write_string("<!-- Circular include: ")
+            buf.write_string(path)
+            buf.write_string(" -->")
+          } else {
+            visited[path] = true
+            let inc_doc = parse(source)
+            // Render included document nodes
+            for inc_node in inc_doc.iter() {
+              render_node_with_registry(
+                inc_node, buf, options, locals, mixins, blocks, child_blocks, registry,
+                depth, block_content, visited,
+              )
+            }
+          }
+        None => {
+          buf.write_string("<!-- Include not found: ")
+          buf.write_string(path)
+          buf.write_string(" -->")
+        }
+      }
+    NamedBlock(name~, body~, mode~) =>
+      // For extends: merge with child blocks
+      if mode == "replace" {
+        match child_blocks.get(name) {
+          Some((child_body, child_mode)) =>
+            // Child has a block with this name
+            if child_mode == "replace" {
+              // Replace: render child's block content
+              for child in child_body {
+                render_node_with_registry(
+                  child, buf, options, locals, mixins, blocks, child_blocks, registry,
+                  depth, block_content, visited,
+                )
+              }
+            } else if child_mode == "append" {
+              // Append: render parent first, then child
+              for child in body {
+                render_node_with_registry(
+                  child, buf, options, locals, mixins, blocks, child_blocks, registry,
+                  depth, block_content, visited,
+                )
+              }
+              for child in child_body {
+                render_node_with_registry(
+                  child, buf, options, locals, mixins, blocks, child_blocks, registry,
+                  depth, block_content, visited,
+                )
+              }
+            } else if child_mode == "prepend" {
+              // Prepend: render child first, then parent
+              for child in child_body {
+                render_node_with_registry(
+                  child, buf, options, locals, mixins, blocks, child_blocks, registry,
+                  depth, block_content, visited,
+                )
+              }
+              for child in body {
+                render_node_with_registry(
+                  child, buf, options, locals, mixins, blocks, child_blocks, registry,
+                  depth, block_content, visited,
+                )
+              }
+            }
+          None =>
+            // No child block, render parent's default content
+            for child in body {
+              render_node_with_registry(
+                child, buf, options, locals, mixins, blocks, child_blocks, registry,
+                depth, block_content, visited,
+              )
+            }
+        }
+      }
+    Element(tag~, id~, classes~, attributes~, children~) => {
+      buf.write_string(indent)
+      buf.write_string("<")
+      buf.write_string(tag)
+      if id.length() > 0 {
+        buf.write_string(" id=\"")
+        buf.write_string(escape_html(id))
+        buf.write_string("\"")
+      }
+      if classes.length() > 0 {
+        buf.write_string(" class=\"")
+        for i, cls in classes {
+          if i > 0 {
+            buf.write_string(" ")
+          }
+          buf.write_string(escape_html(cls))
+        }
+        buf.write_string("\"")
+      }
+      for attr in attributes {
+        buf.write_string(" ")
+        buf.write_string(attr.name)
+        match attr.value {
+          Some(v) => {
+            let should_escape = not(attr.unescaped)
+            let processed = if v.contains("#{") ||
+              v.contains("\"") ||
+              v.contains("'") ||
+              v.contains("/") ||
+              v.contains(" ") {
+              interpolate_string(v, locals, should_escape)
+            } else {
+              match locals.get(v) {
+                Some(local_val) =>
+                  if should_escape {
+                    escape_html(local_val)
+                  } else {
+                    local_val
+                  }
+                None => if should_escape { escape_html(v) } else { v }
+              }
+            }
+            buf.write_string("=\"")
+            buf.write_string(processed)
+            buf.write_string("\"")
+          }
+          None => ()
+        }
+      }
+      if is_void_element(tag) {
+        buf.write_string(">")
+        buf.write_string(newline)
+      } else if children.length() == 0 {
+        buf.write_string("></")
+        buf.write_string(tag)
+        buf.write_string(">")
+        buf.write_string(newline)
+      } else if children.length() == 1 && children[0] is Text(_) {
+        buf.write_string(">")
+        match children[0] {
+          Text(t) =>
+            if is_raw_text_element(tag) {
+              buf.write_string(t)
+            } else {
+              buf.write_string(escape_html(t))
+            }
+          _ => ()
+        }
+        buf.write_string("</")
+        buf.write_string(tag)
+        buf.write_string(">")
+        buf.write_string(newline)
+      } else {
+        buf.write_string(">")
+        buf.write_string(newline)
+        for child in children {
+          render_node_with_registry(
+            child,
+            buf,
+            options,
+            locals,
+            mixins,
+            blocks,
+            child_blocks,
+            registry,
+            depth + 1,
+            block_content,
+            visited,
+          )
+        }
+        buf.write_string(indent)
+        buf.write_string("</")
+        buf.write_string(tag)
+        buf.write_string(">")
+        buf.write_string(newline)
+      }
+    }
+    Text(text) => {
+      buf.write_string(indent)
+      buf.write_string(escape_html(text))
+      buf.write_string(newline)
+    }
+    Interpolation(name) => {
+      let value = match locals.get(name) {
+        Some(v) => v
+        None => ""
+      }
+      buf.write_string(indent)
+      buf.write_string(escape_html(value))
+      buf.write_string(newline)
+    }
+    Doctype(value) => {
+      buf.write_string(indent)
+      buf.write_string("<!DOCTYPE ")
+      buf.write_string(value)
+      buf.write_string(">")
+      buf.write_string(newline)
+    }
+    Comment(text~, render~) =>
+      if render {
+        buf.write_string(indent)
+        buf.write_string("<!--")
+        buf.write_string(text)
+        buf.write_string("-->")
+        buf.write_string(newline)
+      }
+    Extends(..) => () // Handled at document level
+    _ =>
+      // For other node types, fall back to regular rendering
+      render_node_with_mixins(
+        node, buf, options, locals, mixins, blocks, depth, block_content,
+      )
+  }
+}
+
+///|
+/// Render a document with registry support for extends and includes
+pub fn Document::render_with_registry(
+  self : Document,
+  locals : Locals,
+  registry : TemplateRegistry,
+  options~ : RenderOptions,
+) -> String {
+  let visited : Map[String, Bool] = {}
+  // Check if this template extends another
+  match find_extends(self) {
+    Some(parent_path) =>
+      // Load parent template
+      match registry.get(parent_path) {
+        Some(parent_source) => {
+          // Check for circular extends
+          if visited.contains(parent_path) {
+            return "<!-- Circular extends: " + parent_path + " -->"
+          }
+          visited[parent_path] = true
+          // Collect child's named blocks
+          let child_blocks : Map[String, (Array[Node], String)] = {}
+          collect_child_blocks(self.iter(), child_blocks)
+          // Parse parent template
+          let parent_doc = parse(parent_source)
+          // Collect mixins from both
+          let mixins = MixinStore::new()
+          collect_mixins(self.iter(), mixins)
+          collect_mixins(parent_doc.iter(), mixins)
+          let blocks = BlockStore::new()
+          // Render parent with child blocks merged
+          let buf = StringBuilder::new()
+          for node in parent_doc.iter() {
+            render_node_with_registry(
+              node,
+              buf,
+              options,
+              locals,
+              mixins,
+              blocks,
+              child_blocks,
+              registry,
+              0,
+              [],
+              visited,
+            )
+          }
+          buf.to_string()
+        }
+        None => "<!-- Parent template not found: " + parent_path + " -->"
+      }
+    None => {
+      // No extends, render normally but with include support
+      let mixins = MixinStore::new()
+      collect_mixins(self.iter(), mixins)
+      let blocks = BlockStore::new()
+      collect_blocks(self.iter(), blocks)
+      let child_blocks : Map[String, (Array[Node], String)] = {}
+      let buf = StringBuilder::new()
+      for node in self.iter() {
+        render_node_with_registry(
+          node,
+          buf,
+          options,
+          locals,
+          mixins,
+          blocks,
+          child_blocks,
+          registry,
+          0,
+          [],
+          visited,
+        )
+      }
+      buf.to_string()
+    }
+  }
+}
+
+///|
+/// Convenience function: render with registry
+pub fn render_with_registry(
+  input : String,
+  locals : Locals,
+  registry : TemplateRegistry,
+) -> String {
+  parse(input).render_with_registry(
+    locals,
+    registry,
+    options=RenderOptions::default(),
+  )
+}

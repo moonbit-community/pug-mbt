@@ -1,6 +1,10 @@
 // Generated using `moon info`, DON'T EDIT IT
 package "username/pug"
 
+import(
+  "moonbitlang/x/fs"
+)
+
 // Values
 pub fn compile(String) -> CompiledTemplate
 
@@ -11,6 +15,8 @@ pub fn render(String) -> String
 pub fn render_pretty(String) -> String
 
 pub fn render_with_locals(String, Locals) -> String
+
+pub fn render_with_registry(String, Locals, TemplateRegistry) -> String
 
 pub fn tokenize(String) -> Array[Token]
 
@@ -39,6 +45,7 @@ pub fn Document::new() -> Self
 pub fn Document::push(Self, Node) -> Unit
 pub fn Document::render(Self, options~ : RenderOptions) -> String
 pub fn Document::render_with_locals(Self, Locals, options~ : RenderOptions) -> String
+pub fn Document::render_with_registry(Self, Locals, TemplateRegistry, options~ : RenderOptions) -> String
 pub fn Document::to_html(Self) -> String
 pub fn Document::to_pretty_html(Self) -> String
 
@@ -92,6 +99,16 @@ pub struct RenderOptions {
 }
 pub fn RenderOptions::default() -> Self
 pub fn RenderOptions::pretty() -> Self
+
+pub struct TemplateRegistry {
+  templates : Map[String, String]
+}
+pub fn TemplateRegistry::contains(Self, String) -> Bool
+pub fn TemplateRegistry::ensure_loaded(Self, String) -> Unit raise @fs.IOError
+pub fn TemplateRegistry::get(Self, String) -> String?
+pub fn TemplateRegistry::load_file(Self, String) -> Unit raise @fs.IOError
+pub fn TemplateRegistry::new() -> Self
+pub fn TemplateRegistry::register(Self, String, String) -> Unit
 
 pub enum Token {
   Indent(Int)

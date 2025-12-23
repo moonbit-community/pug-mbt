@@ -68,3 +68,68 @@ test "prepend block" {
     content="<html><head><script src=\"/jquery.js\"></script><script src=\"/app.js\"></script></head></html>",
   )
 }
+
+///|
+test "extends with registry - basic" {
+  let registry = TemplateRegistry::new()
+  // Register the layout template
+  let layout =
+    #|html
+    #|  head
+    #|    block head
+    #|      title Default Title
+    #|  body
+    #|    block content
+    #|      p Default content
+  registry.register("layout.pug", layout)
+  // Child template that extends layout
+  let child =
+    #|extends layout.pug
+    #|block content
+    #|  p Child content
+  let html = render_with_registry(child, Locals::new(), registry)
+  inspect(
+    html,
+    content="<html><head><title>Default Title</title></head><body><p>Child content</p></body></html>",
+  )
+}
+
+///|
+test "extends with registry - append block" {
+  let registry = TemplateRegistry::new()
+  let layout =
+    #|html
+    #|  head
+    #|    block scripts
+    #|      script(src="/jquery.js")
+  registry.register("layout.pug", layout)
+  let child =
+    #|extends layout.pug
+    #|append scripts
+    #|  script(src="/app.js")
+  let html = render_with_registry(child, Locals::new(), registry)
+  inspect(
+    html,
+    content="<html><head><script src=\"/jquery.js\"></script><script src=\"/app.js\"></script></head></html>",
+  )
+}
+
+///|
+test "extends with registry - prepend block" {
+  let registry = TemplateRegistry::new()
+  let layout =
+    #|html
+    #|  head
+    #|    block scripts
+    #|      script(src="/app.js")
+  registry.register("layout.pug", layout)
+  let child =
+    #|extends layout.pug
+    #|prepend scripts
+    #|  script(src="/jquery.js")
+  let html = render_with_registry(child, Locals::new(), registry)
+  inspect(
+    html,
+    content="<html><head><script src=\"/jquery.js\"></script><script src=\"/app.js\"></script></head></html>",
+  )
+}

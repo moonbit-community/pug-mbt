@@ -198,3 +198,61 @@ pub fn Document::push(self : Document, node : Node) -> Unit {
 pub fn Document::iter(self : Document) -> Iter[Node] {
   self.nodes.iter()
 }
+
+///|
+/// Template registry for storing and resolving templates
+/// Used for extends and include functionality
+pub struct TemplateRegistry {
+  templates : Map[String, String] // path -> source code
+}
+
+///|
+pub fn TemplateRegistry::new() -> TemplateRegistry {
+  { templates: {} }
+}
+
+///|
+/// Register a template with a path
+pub fn TemplateRegistry::register(
+  self : TemplateRegistry,
+  path : String,
+  source : String,
+) -> Unit {
+  self.templates[path] = source
+}
+
+///|
+/// Get a template by path
+pub fn TemplateRegistry::get(self : TemplateRegistry, path : String) -> String? {
+  self.templates.get(path)
+}
+
+///|
+/// Check if a template exists
+pub fn TemplateRegistry::contains(
+  self : TemplateRegistry,
+  path : String,
+) -> Bool {
+  self.templates.contains(path)
+}
+
+///|
+/// Load a template from file and register it
+pub fn TemplateRegistry::load_file(
+  self : TemplateRegistry,
+  path : String,
+) -> Unit raise @fs.IOError {
+  let source = @fs.read_file_to_string(path)
+  self.templates[path] = source
+}
+
+///|
+/// Load a template from file if not already loaded
+pub fn TemplateRegistry::ensure_loaded(
+  self : TemplateRegistry,
+  path : String,
+) -> Unit raise @fs.IOError {
+  if not(self.templates.contains(path)) {
+    self.load_file(path)
+  }
+}
