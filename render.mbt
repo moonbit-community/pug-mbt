@@ -315,6 +315,13 @@ fn render_node_with_mixins(
         iterations += 1
       }
     }
+    NamedBlock(body~, ..) =>
+      // For simple blocks without extends, just render the body content
+      for child in body {
+        render_node_with_mixins(
+          child, buf, options, locals, mixins, depth, block_content,
+        )
+      }
     MixinCall(name~, args~, block~, attrs~) =>
       // Look up the mixin and expand it
       match mixins.get(name) {

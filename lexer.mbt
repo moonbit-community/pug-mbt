@@ -75,6 +75,8 @@ pub enum Token {
   VarAssign(String, String)
   /// While loop with condition
   While(String)
+  /// Named block: block name
+  NamedBlock(String)
   /// End of input
   EOF
 } derive(Show, Eq)
@@ -474,7 +476,7 @@ fn Lexer::parse_mixin_attrs(self : Lexer) -> Array[(String, String)] {
     }
     if self.peek() is Some(')') {
       let _ = self.advance()
-       // consume )
+      // consume )
     }
   }
   attrs
@@ -762,6 +764,19 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
     self.skip_n(6) // consume "while "
     let condition = self.read_line_text()
     tokens.push(While(condition))
+    if self.peek() is Some('\n') {
+      let _ = self.advance()
+      tokens.push(Newline)
+    }
+    return tokens
+  }
+
+  // Check for named block (block name) - for template inheritance
+  // Note: This is different from 'block' alone which is for mixin block content
+  if self.starts_with("block ") {
+    self.skip_n(6) // consume "block "
+    let name = self.read_line_text().trim(chars=" \t").to_string()
+    tokens.push(NamedBlock(name))
     if self.peek() is Some('\n') {
       let _ = self.advance()
       tokens.push(Newline)

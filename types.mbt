@@ -167,6 +167,8 @@ pub enum Node {
   VarAssign(name~ : String, value~ : String)
   /// While loop
   While(condition~ : String, body~ : Array[Node])
+  /// Named block (for template inheritance)
+  NamedBlock(name~ : String, body~ : Array[Node])
 } derive(Show, Eq)
 
 ///|

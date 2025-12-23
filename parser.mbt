@@ -301,6 +301,11 @@ fn Parser::parse_element(self : Parser) -> Node? {
       let _ = self.advance()
       return Some(Node::VarAssign(name~, value~))
     }
+    Some(Token::NamedBlock(name)) => {
+      let _ = self.advance()
+      // Body will be added by build_tree
+      return Some(Node::NamedBlock(name~, body=[]))
+    }
     _ => ()
   }
 
@@ -643,6 +648,7 @@ fn add_child(parent : Node, child : Node) -> Unit {
     Conditional(if_true~, ..) => if_true.push(child)
     Each(body~, ..) => body.push(child)
     While(body~, ..) => body.push(child)
+    NamedBlock(body~, ..) => body.push(child)
     When(body~, ..) => body.push(child)
     Default(body~) => body.push(child)
     MixinDef(body~, ..) => body.push(child)
