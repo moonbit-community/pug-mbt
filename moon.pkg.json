@@ -4,6 +4,8 @@
   ],
   "targets": {
     "js_eval.mbt": ["js"],
-    "js_eval_stub.mbt": ["not", "js"]
+    "js_eval_stub.mbt": ["not", "js"],
+    "js_test.mbt": ["js"],
+    "js_wbtest.mbt": ["js"]
   }
 }

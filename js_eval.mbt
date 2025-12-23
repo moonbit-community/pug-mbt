@@ -24,8 +24,38 @@ extern "js" fn js_eval_with_context(
   #|}
 
 ///|
+/// Check if a string represents a valid number
+fn is_numeric_string(s : String) -> Bool {
+  if s.length() == 0 {
+    return false
+  }
+  let chars = s.to_array()
+  let mut i = 0
+  // Allow leading minus
+  if chars[0] == '-' {
+    i = 1
+    if chars.length() == 1 {
+      return false
+    }
+  }
+  let mut has_dot = false
+  while i < chars.length() {
+    let c = chars[i]
+    if c >= '0' && c <= '9' {
+      i += 1
+    } else if c == '.' && not(has_dot) {
+      has_dot = true
+      i += 1
+    } else {
+      return false
+    }
+  }
+  true
+}
+
+///|
 /// Convert Locals to JSON string for passing to JS
-/// Converts "true"/"false" to boolean values for proper JS semantics
+/// Converts "true"/"false" to boolean values and numeric strings to numbers
 pub fn locals_to_json(locals : Locals) -> String {
   let buf = StringBuilder::new()
   buf.write_string("{")
@@ -43,6 +73,9 @@ pub fn locals_to_json(locals : Locals) -> String {
       buf.write_string("true")
     } else if v == "false" {
       buf.write_string("false")
+    } else if is_numeric_string(v) {
+      // Pass numbers as JSON numbers for proper JS arithmetic
+      buf.write_string(v)
     } else {
       buf.write_string("\"")
       buf.write_string(escape_json_string(v))

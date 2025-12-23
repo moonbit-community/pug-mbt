@@ -418,15 +418,21 @@ fn render_node_with_mixins(
     }
     Interpolation(name) => {
       // Check for post-increment (n++)
-      let (var_name, is_post_increment) = if name.has_suffix("++") {
+      let (expr, is_post_increment) = if name.has_suffix("++") {
         (try! name[0:name.length() - 2].to_string(), true)
       } else {
         (name, false)
       }
-      // Look up variable in locals (escaped)
-      let value = match locals.get(var_name) {
-        Some(v) => v
-        None => "" // Missing variable renders as empty
+      // Evaluate the expression
+      let value = if needs_js_eval(expr) {
+        // Use JS evaluation for complex expressions (method calls, operators)
+        eval_js_expression(expr, locals)
+      } else {
+        // Simple variable lookup
+        match locals.get(expr) {
+          Some(v) => v
+          None => "" // Missing variable renders as empty
+        }
       }
       buf.write_string(indent)
       buf.write_string(escape_html(value))
@@ -435,16 +441,20 @@ fn render_node_with_mixins(
       if is_post_increment {
         let parse_result : Result[Int, _] = try? @strconv.parse_int(value)
         match parse_result {
-          Ok(n) => locals.set(var_name, (n + 1).to_string())
+          Ok(n) => locals.set(expr, (n + 1).to_string())
           Err(_) => ()
         }
       }
     }
     UnescapedInterpolation(name) => {
-      // Look up variable in locals (unescaped - raw HTML)
-      let value = match locals.get(name) {
-        Some(v) => v
-        None => "" // Missing variable renders as empty
+      // Evaluate the expression (unescaped - raw HTML)
+      let value = if needs_js_eval(name) {
+        eval_js_expression(name, locals)
+      } else {
+        match locals.get(name) {
+          Some(v) => v
+          None => "" // Missing variable renders as empty
+        }
       }
       buf.write_string(indent)
       buf.write_string(value) // No escaping!
