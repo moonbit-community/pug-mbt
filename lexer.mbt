@@ -843,8 +843,8 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
     let _ = self.advance()
     tokens.push(LParen)
     while self.peek() is Some(c) && c != ')' {
-      // Skip whitespace and commas
-      self.skip_while(fn(c) { c == ' ' || c == ',' || c == '\t' })
+      // Skip whitespace, commas, and newlines (for multi-line attributes)
+      self.skip_while(fn(c) { c == ' ' || c == ',' || c == '\t' || c == '\n' })
       if self.peek() is Some(')') {
         break
       }
@@ -918,7 +918,7 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
       let _ = self.advance()
       tokens.push(LParen)
       while self.peek() is Some(c) && c != ')' {
-        self.skip_while(fn(c) { c == ' ' || c == ',' || c == '\t' })
+        self.skip_while(fn(c) { c == ' ' || c == ',' || c == '\t' || c == '\n' })
         if self.peek() is Some(')') {
           break
         }

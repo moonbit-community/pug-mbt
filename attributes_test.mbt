@@ -9,7 +9,6 @@ test "attribute with single quotes" {
 }
 
 ///|
-#skip
 test "multi-line attributes" {
   let pug =
     #|input(
