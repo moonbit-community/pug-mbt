@@ -4,12 +4,11 @@
 /// TODO: Implement each/for/while in lexer/parser
 
 ///|
-#skip
 test "each over array" {
   let pug =
     #|ul
     #|  each item in items
-    #|    li= item
+    #|    li #{item}
   let locals = Locals::new()
   locals.set_array("items", ["Apple", "Banana", "Cherry"])
   let html = render_with_locals(pug, locals)
@@ -20,7 +19,6 @@ test "each over array" {
 }
 
 ///|
-#skip
 test "each with index" {
   let pug =
     #|ul
@@ -33,7 +31,6 @@ test "each with index" {
 }
 
 ///|
-#skip
 test "each over object" {
   let pug =
     #|ul
@@ -46,12 +43,11 @@ test "each over object" {
 }
 
 ///|
-#skip
 test "each with else for empty" {
   let pug =
     #|ul
     #|  each item in items
-    #|    li= item
+    #|    li #{item}
     #|  else
     #|    li No items
   let locals = Locals::new()
@@ -61,12 +57,11 @@ test "each with else for empty" {
 }
 
 ///|
-#skip
 test "for alias for each" {
   let pug =
     #|ul
     #|  for item in items
-    #|    li= item
+    #|    li #{item}
   let locals = Locals::new()
   locals.set_array("items", ["One", "Two"])
   let html = render_with_locals(pug, locals)
@@ -86,14 +81,13 @@ test "while loop" {
 }
 
 ///|
-#skip
 test "nested iteration" {
   let pug =
     #|table
     #|  each row in rows
     #|    tr
     #|      each cell in row
-    #|        td= cell
+    #|        td #{cell}
   let locals = Locals::new()
   locals.set_nested_array("rows", [["1", "2"], ["3", "4"]])
   let html = render_with_locals(pug, locals)

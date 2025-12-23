@@ -1,10 +1,8 @@
 ///|
 /// Tests for Pug case/switch features
 /// Reference: https://pugjs.org/language/case.html
-/// TODO: Implement case/when/default in lexer/parser
 
 ///|
-#skip
 test "case with when" {
   let pug =
     #|case status
@@ -21,7 +19,6 @@ test "case with when" {
 }
 
 ///|
-#skip
 test "case with default" {
   let pug =
     #|case status
@@ -36,7 +33,6 @@ test "case with default" {
 }
 
 ///|
-#skip
 test "case with fall through" {
   let pug =
     #|case num
@@ -53,7 +49,6 @@ test "case with fall through" {
 }
 
 ///|
-#skip
 test "case with block expansion" {
   let pug =
     #|case type
@@ -67,7 +62,6 @@ test "case with block expansion" {
 }
 
 ///|
-#skip
 test "nested case" {
   let pug =
     #|div

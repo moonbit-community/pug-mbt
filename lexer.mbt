@@ -51,6 +51,14 @@ pub enum Token {
   Else
   /// Unless conditional with condition expression
   Unless(String)
+  /// Each iteration: (item_var, index_var, collection)
+  Each(String, String, String)
+  /// Case statement with expression
+  Case(String)
+  /// When clause with value
+  When(String)
+  /// Default clause
+  Default
   /// End of input
   EOF
 } derive(Show, Eq)
@@ -256,6 +264,53 @@ fn Lexer::read_tag_interpolation(self : Lexer) -> String {
 }
 
 ///|
+/// Read when value (quoted string or unquoted value)
+fn Lexer::read_when_value(self : Lexer) -> String {
+  match self.peek() {
+    Some('"') => {
+      let _ = self.advance() // consume opening quote
+      let value = self.take_while(fn(c) { c != '"' })
+      if self.peek() is Some('"') {
+        let _ = self.advance() // consume closing quote
+      }
+      value
+    }
+    Some('\'') => {
+      let _ = self.advance() // consume opening quote
+      let value = self.take_while(fn(c) { c != '\'' })
+      if self.peek() is Some('\'') {
+        let _ = self.advance() // consume closing quote
+      }
+      value
+    }
+    _ => self.take_while(fn(c) { c != '\n' && c != ':' })
+  }
+}
+
+///|
+/// Parse each/for header: item [, index] in collection
+fn Lexer::parse_each_header(self : Lexer) -> (String, String, String) {
+  // Read item variable name
+  let item_var = self.take_while(is_tag_char)
+  self.skip_while(fn(c) { c == ' ' })
+  // Check for optional index variable
+  let mut index_var = ""
+  if self.peek() is Some(',') {
+    let _ = self.advance() // consume ,
+    self.skip_while(fn(c) { c == ' ' })
+    index_var = self.take_while(is_tag_char)
+    self.skip_while(fn(c) { c == ' ' })
+  }
+  // Expect "in"
+  if self.starts_with("in ") {
+    self.skip_n(3) // consume "in "
+  }
+  // Read collection expression
+  let collection = self.read_line_text()
+  (item_var, index_var, collection)
+}
+
+///|
 /// Parse text with interpolations, returning alternating Text/Interpolation tokens
 fn Lexer::parse_text_with_interpolations(
   self : Lexer,
@@ -439,6 +494,132 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
     self.skip_n(7) // consume "unless "
     let condition = self.read_line_text()
     tokens.push(Unless(condition))
+    if self.peek() is Some('\n') {
+      let _ = self.advance()
+      tokens.push(Newline)
+    }
+    return tokens
+  }
+
+  // Check for each/for iteration
+  if self.starts_with("each ") || self.starts_with("for ") {
+    let keyword_len = if self.starts_with("each ") { 5 } else { 4 }
+    self.skip_n(keyword_len)
+    // Parse: item [, index] in collection
+    let (item_var, index_var, collection) = self.parse_each_header()
+    tokens.push(Each(item_var, index_var, collection))
+    if self.peek() is Some('\n') {
+      let _ = self.advance()
+      tokens.push(Newline)
+    }
+    return tokens
+  }
+
+  // Check for case statement
+  if self.starts_with("case ") {
+    self.skip_n(5) // consume "case "
+    let expr = self.read_line_text()
+    tokens.push(Case(expr))
+    if self.peek() is Some('\n') {
+      let _ = self.advance()
+      tokens.push(Newline)
+    }
+    return tokens
+  }
+
+  // Check for when clause
+  if self.starts_with("when ") {
+    self.skip_n(5) // consume "when "
+    let value = self.read_when_value()
+    tokens.push(When(value))
+    // Check for block expansion (:) after when - continue parsing inline content
+    if self.peek() is Some(':') {
+      let _ = self.advance()
+      tokens.push(BlockExpand)
+      if self.peek() is Some(' ') {
+        let _ = self.advance()
+      }
+      // Parse inline element after block expansion (same as regular element handling)
+      match self.peek() {
+        Some(c) if is_alpha(c) => {
+          let tag = self.take_while(is_tag_char)
+          tokens.push(Tag(tag))
+        }
+        _ => ()
+      }
+      // Read ID and class selectors
+      while self.peek() is Some('#') || self.peek() is Some('.') {
+        match self.peek() {
+          Some('#') => {
+            let _ = self.advance()
+            let id = self.take_while(is_id_class_char)
+            tokens.push(Id(id))
+          }
+          Some('.') => {
+            let _ = self.advance()
+            let cls = self.take_while(is_id_class_char)
+            tokens.push(Class(cls))
+          }
+          _ => break
+        }
+      }
+      // Read text content
+      if self.peek() is Some(' ') {
+        let _ = self.advance()
+        self.parse_text_with_interpolations(tokens)
+      }
+    }
+    if self.peek() is Some('\n') {
+      let _ = self.advance()
+      tokens.push(Newline)
+    }
+    return tokens
+  }
+
+  // Check for default clause
+  if self.starts_with("default") &&
+    (self.peek_ahead(7) is Some('\n') ||
+      self.peek_ahead(7) is Some(':') ||
+      self.peek_ahead(7) is None) {
+    self.skip_n(7) // consume "default"
+    tokens.push(Default)
+    // Check for block expansion (:) after default - continue parsing inline content
+    if self.peek() is Some(':') {
+      let _ = self.advance()
+      tokens.push(BlockExpand)
+      if self.peek() is Some(' ') {
+        let _ = self.advance()
+      }
+      // Parse inline element after block expansion
+      match self.peek() {
+        Some(c) if is_alpha(c) => {
+          let tag = self.take_while(is_tag_char)
+          tokens.push(Tag(tag))
+        }
+        _ => ()
+      }
+      // Read ID and class selectors
+      while self.peek() is Some('#') || self.peek() is Some('.') {
+        match self.peek() {
+          Some('#') => {
+            let _ = self.advance()
+            let id = self.take_while(is_id_class_char)
+            tokens.push(Id(id))
+          }
+          Some('.') => {
+            let _ = self.advance()
+            let cls = self.take_while(is_id_class_char)
+            tokens.push(Class(cls))
+          }
+          _ => break
+        }
+      }
+      // Read text content
+      if self.peek() is Some(' ') {
+        let _ = self.advance()
+        self.parse_text_with_interpolations(tokens)
+      }
+    }
     if self.peek() is Some('\n') {
       let _ = self.advance()
       tokens.push(Newline)

@@ -129,6 +129,24 @@ pub enum Node {
     if_false~ : Array[Node],
     is_unless~ : Bool,
   )
+  /// Each loop (each item in collection)
+  Each(
+    item_var~ : String,
+    index_var~ : String, // Empty string if no index variable
+    collection~ : String,
+    body~ : Array[Node],
+    else_body~ : Array[Node], // For "each ... else" when collection is empty
+  )
+  /// Case/switch statement
+  Case(
+    expr~ : String, // Variable to match against
+    cases~ : Array[(String, Array[Node])], // (value, body) pairs for when clauses
+    default~ : Array[Node], // Default case body
+  )
+  /// When clause (used during parsing, not in final AST)
+  When(value~ : String, body~ : Array[Node])
+  /// Default clause (used during parsing, not in final AST)
+  Default(body~ : Array[Node])
 } derive(Show, Eq)
 
 ///|

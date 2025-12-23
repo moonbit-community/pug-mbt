@@ -220,6 +220,44 @@ fn Parser::parse_element(self : Parser) -> Node? {
         ),
       )
     }
+    Some(Token::Each(item_var, index_var, collection)) => {
+      let _ = self.advance()
+      // Children will be added by build_tree
+      return Some(
+        Each(item_var~, index_var~, collection~, body=[], else_body=[]),
+      )
+    }
+    Some(Token::Case(expr)) => {
+      let _ = self.advance()
+      // Children (When/Default) will be added by build_tree
+      return Some(Case(expr~, cases=[], default=[]))
+    }
+    Some(Token::When(value)) => {
+      let _ = self.advance()
+      let when_body : Array[Node] = []
+      // Check for block expansion - inline content after :
+      if self.peek() is Some(BlockExpand) {
+        let _ = self.advance()
+        match self.parse_inline_element() {
+          Some(node) => when_body.push(node)
+          None => ()
+        }
+      }
+      return Some(When(value~, body=when_body))
+    }
+    Some(Token::Default) => {
+      let _ = self.advance()
+      let default_body : Array[Node] = []
+      // Check for block expansion - inline content after :
+      if self.peek() is Some(BlockExpand) {
+        let _ = self.advance()
+        match self.parse_inline_element() {
+          Some(node) => default_body.push(node)
+          None => ()
+        }
+      }
+      return Some(Default(body=default_body))
+    }
     _ => ()
   }
 
@@ -407,6 +445,8 @@ fn build_tree(lines : Array[ParsedLine]) -> Array[Node] {
   let stack : Array[(Int, Node)] = [] // (indent, node) pairs
   // Track recent conditionals at each indent level for else linking
   let recent_conditionals : Map[Int, Node] = {}
+  // Track recent Each nodes at each indent level for else linking
+  let recent_each : Map[Int, Node] = {}
 
   for line in lines {
     let indent = line.indent
@@ -421,6 +461,10 @@ fn build_tree(lines : Array[ParsedLine]) -> Array[Node] {
         if is_conditional(completed) && not(is_else_marker(completed)) {
           recent_conditionals[popped_indent] = completed
         }
+        // Track completed Each nodes for else linking
+        if is_each_node(completed) {
+          recent_each[popped_indent] = completed
+        }
         if stack.length() > 0 {
           // Add to parent's children
           let (_, parent) = stack[stack.length() - 1]
@@ -434,19 +478,26 @@ fn build_tree(lines : Array[ParsedLine]) -> Array[Node] {
       }
     }
 
-    // Handle else/else if - link to previous conditional at same indent
+    // Handle else/else if - link to previous conditional or Each at same indent
     if is_else_marker(node) {
-      // This is an else block - find the recent conditional at this indent
-      match recent_conditionals.get(indent) {
-        Some(prev_cond) => {
-          // The else marker's children will be collected, then added to prev_cond's if_false
-          // For now, push a special wrapper that we'll process later
+      // First check for recent Each at this indent (each ... else for empty collection)
+      match recent_each.get(indent) {
+        Some(_) => {
+          // The else marker's children will be collected, then added to Each's else_body
           stack.push((indent, node))
         }
-        None => {
-          // No matching if - just ignore
-          ()
-        }
+        None =>
+          // Otherwise check for recent conditional at this indent
+          match recent_conditionals.get(indent) {
+            Some(_) => {
+              // The else marker's children will be collected, then added to if_false
+              stack.push((indent, node))
+            }
+            None => {
+              // No matching if/each - just ignore
+              ()
+            }
+          }
       }
       continue
     }
@@ -486,25 +537,32 @@ fn build_tree(lines : Array[ParsedLine]) -> Array[Node] {
   // Pop remaining items from stack
   while stack.length() > 0 {
     let (popped_indent, completed) = stack.pop().unwrap()
-    // Handle else marker - add its children to the recent conditional's if_false
+    // Handle else marker - add its children to the recent conditional's if_false or Each's else_body
     if is_else_marker(completed) {
-      match recent_conditionals.get(popped_indent) {
-        Some(prev_cond) => {
-          // Get the children collected under the else marker
-          match completed {
-            Conditional(if_true=else_children, ..) => {
-              add_else_branch(prev_cond, else_children)
-            }
-            _ => ()
+      // Get the children collected under the else marker
+      let else_children = match completed {
+        Conditional(if_true~, ..) => if_true
+        _ => []
+      }
+      // First check for recent Each at this indent
+      match recent_each.get(popped_indent) {
+        Some(prev_each) => add_each_else_branch(prev_each, else_children)
+        None =>
+          // Otherwise check for conditional
+          match recent_conditionals.get(popped_indent) {
+            Some(prev_cond) => add_else_branch(prev_cond, else_children)
+            None => ()
           }
-        }
-        None => ()
       }
       continue
     }
     // Track completed conditionals
     if is_conditional(completed) {
       recent_conditionals[popped_indent] = completed
+    }
+    // Track completed Each nodes
+    if is_each_node(completed) {
+      recent_each[popped_indent] = completed
     }
     if stack.length() > 0 {
       let (_, parent) = stack[stack.length() - 1]
@@ -518,11 +576,25 @@ fn build_tree(lines : Array[ParsedLine]) -> Array[Node] {
 }
 
 ///|
-/// Add a child to an Element or Conditional node
+/// Add a child to an Element, Conditional, Each, When, Default, or Case node
 fn add_child(parent : Node, child : Node) -> Unit {
   match parent {
     Element(children~, ..) => children.push(child)
     Conditional(if_true~, ..) => if_true.push(child)
+    Each(body~, ..) => body.push(child)
+    When(body~, ..) => body.push(child)
+    Default(body~) => body.push(child)
+    Case(cases~, default~, ..) =>
+      // Add When/Default as case branches
+      match child {
+        When(value~, body~) => cases.push((value, body))
+        Default(body~) => {
+          for node in body {
+            default.push(node)
+          }
+        }
+        _ => () // Can't add other children to Case directly
+      }
     _ => () // Can't add children to other node types
   }
 }
@@ -543,12 +615,31 @@ fn is_conditional(node : Node) -> Bool {
 }
 
 ///|
+/// Check if a node is an Each loop
+fn is_each_node(node : Node) -> Bool {
+  node is Each(_)
+}
+
+///|
 /// Add else branch to a conditional
 fn add_else_branch(cond : Node, else_children : Array[Node]) -> Unit {
   match cond {
     Conditional(if_false~, ..) => {
       for child in else_children {
         if_false.push(child)
+      }
+    }
+    _ => ()
+  }
+}
+
+///|
+/// Add else branch to an Each loop (for empty collection fallback)
+fn add_each_else_branch(each_node : Node, else_children : Array[Node]) -> Unit {
+  match each_node {
+    Each(else_body~, ..) => {
+      for child in else_children {
+        else_body.push(child)
       }
     }
     _ => ()

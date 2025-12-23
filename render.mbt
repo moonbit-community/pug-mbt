@@ -171,6 +171,40 @@ fn render_node_with_locals(
         buf.write_string("-->")
         buf.write_string(newline)
       }
+    Case(expr~, cases~, default~) => {
+      // Evaluate the expression to get the value to match
+      let value = match locals.get(expr) {
+        Some(v) => v
+        None => ""
+      }
+      // Find matching case or use default
+      let mut matched = false
+      let fall_through_bodies : Array[Array[Node]] = []
+      for pair in cases {
+        let (case_value, case_body) = pair
+        if case_value == value || fall_through_bodies.length() > 0 {
+          // Match found or falling through
+          if case_body.is_empty() {
+            // Empty body - fall through to next case
+            fall_through_bodies.push(case_body)
+          } else {
+            // Found body - render it
+            for child in case_body {
+              render_node_with_locals(child, buf, options, locals, depth)
+            }
+            matched = true
+            break
+          }
+        }
+      }
+      if not(matched) {
+        // No match found, render default
+        for child in default {
+          render_node_with_locals(child, buf, options, locals, depth)
+        }
+      }
+    }
+    When(..) | Default(..) => () // These should be consumed by Case during parsing
     Conditional(condition~, if_true~, if_false~, is_unless~) => {
       // Evaluate the condition
       let cond_result = evaluate_condition(condition, locals)
@@ -183,6 +217,61 @@ fn render_node_with_locals(
       } else {
         for child in if_false {
           render_node_with_locals(child, buf, options, locals, depth)
+        }
+      }
+    }
+    Each(item_var~, index_var~, collection~, body~, else_body~) => {
+      // Get the collection from locals and iterate
+      let coll_value = locals.get(collection)
+      let is_object = match coll_value {
+        Some(s) => s.length() > 0 && s.to_array()[0] == '{'
+        None => false
+      }
+      if is_object {
+        // Iterate over object key-value pairs
+        let pairs = parse_json_object_pairs(coll_value)
+        if pairs.is_empty() {
+          for child in else_body {
+            render_node_with_locals(child, buf, options, locals, depth)
+          }
+        } else {
+          for pair in pairs {
+            let (key, value) = pair
+            let loop_locals = Locals::new()
+            for k, v in locals.0 {
+              loop_locals.set(k, v)
+            }
+            // For objects: item_var = value, index_var = key
+            loop_locals.set(item_var, value)
+            if index_var.length() > 0 {
+              loop_locals.set(index_var, key)
+            }
+            for child in body {
+              render_node_with_locals(child, buf, options, loop_locals, depth)
+            }
+          }
+        }
+      } else {
+        // Iterate over array
+        let items = parse_collection(coll_value)
+        if items.is_empty() {
+          for child in else_body {
+            render_node_with_locals(child, buf, options, locals, depth)
+          }
+        } else {
+          for i, item in items {
+            let loop_locals = Locals::new()
+            for k, v in locals.0 {
+              loop_locals.set(k, v)
+            }
+            loop_locals.set(item_var, item)
+            if index_var.length() > 0 {
+              loop_locals.set(index_var, i.to_string())
+            }
+            for child in body {
+              render_node_with_locals(child, buf, options, loop_locals, depth)
+            }
+          }
         }
       }
     }
@@ -265,6 +354,183 @@ fn render_node_with_locals(
       }
     }
   }
+}
+
+///|
+/// Parse a collection value (array or object) stored as JSON-like string
+fn parse_collection(value : String?) -> Array[String] {
+  match value {
+    None => []
+    Some(s) => {
+      let chars = s.to_array()
+      if chars.is_empty() {
+        return []
+      }
+      // Check if it's an array [...]
+      if chars[0] == '[' {
+        return parse_json_array(s)
+      }
+      // Check if it's an object {...}
+      if chars[0] == '{' {
+        return parse_json_object_values(s)
+      }
+      // Otherwise treat as single value
+      [s]
+    }
+  }
+}
+
+///|
+/// Parse a JSON-like array: ["a","b","c"] -> ["a", "b", "c"]
+fn parse_json_array(s : String) -> Array[String] {
+  let result : Array[String] = []
+  let chars = s.to_array()
+  let mut i = 1 // skip [
+  while i < chars.length() && chars[i] != ']' {
+    // Skip whitespace and commas
+    while i < chars.length() && (chars[i] == ' ' || chars[i] == ',' || chars[i] == '\n') {
+      i += 1
+    }
+    if i >= chars.length() || chars[i] == ']' {
+      break
+    }
+    // Check for nested array
+    if chars[i] == '[' {
+      // Find matching ]
+      let start = i
+      let mut depth = 1
+      i += 1
+      while i < chars.length() && depth > 0 {
+        if chars[i] == '[' {
+          depth += 1
+        } else if chars[i] == ']' {
+          depth -= 1
+        }
+        i += 1
+      }
+      // Extract the nested array as string
+      let nested = StringBuilder::new()
+      for j in start..<i {
+        nested.write_char(chars[j])
+      }
+      result.push(nested.to_string())
+    } else if chars[i] == '"' {
+      // Parse quoted string
+      i += 1 // skip opening "
+      let buf = StringBuilder::new()
+      while i < chars.length() && chars[i] != '"' {
+        buf.write_char(chars[i])
+        i += 1
+      }
+      result.push(buf.to_string())
+      i += 1 // skip closing "
+    } else {
+      // Parse unquoted value
+      let buf = StringBuilder::new()
+      while i < chars.length() && chars[i] != ',' && chars[i] != ']' {
+        buf.write_char(chars[i])
+        i += 1
+      }
+      result.push(buf.to_string())
+    }
+  }
+  result
+}
+
+///|
+/// Parse a JSON-like object and return key-value pairs: {"a":"1","b":"2"} -> [("a","1"), ("b","2")]
+fn parse_json_object_pairs(value : String?) -> Array[(String, String)] {
+  match value {
+    None => []
+    Some(s) => {
+      let result : Array[(String, String)] = []
+      let chars = s.to_array()
+      if chars.is_empty() || chars[0] != '{' {
+        return []
+      }
+      let mut i = 1 // skip {
+      while i < chars.length() && chars[i] != '}' {
+        // Skip whitespace and commas
+        while i < chars.length() && (chars[i] == ' ' || chars[i] == ',' || chars[i] == '\n') {
+          i += 1
+        }
+        if i >= chars.length() || chars[i] == '}' {
+          break
+        }
+        // Parse key (quoted)
+        let mut key = ""
+        if chars[i] == '"' {
+          i += 1 // skip opening "
+          let buf = StringBuilder::new()
+          while i < chars.length() && chars[i] != '"' {
+            buf.write_char(chars[i])
+            i += 1
+          }
+          key = buf.to_string()
+          i += 1 // skip closing "
+        }
+        // Skip colon
+        while i < chars.length() && (chars[i] == ':' || chars[i] == ' ') {
+          i += 1
+        }
+        // Parse value (quoted)
+        let mut val = ""
+        if i < chars.length() && chars[i] == '"' {
+          i += 1 // skip opening "
+          let buf = StringBuilder::new()
+          while i < chars.length() && chars[i] != '"' {
+            buf.write_char(chars[i])
+            i += 1
+          }
+          val = buf.to_string()
+          i += 1 // skip closing "
+        }
+        result.push((key, val))
+      }
+      result
+    }
+  }
+}
+
+///|
+/// Parse a JSON-like object and return values: {"a":"1","b":"2"} -> ["1", "2"]
+fn parse_json_object_values(s : String) -> Array[String] {
+  let result : Array[String] = []
+  let chars = s.to_array()
+  let mut i = 1 // skip {
+  while i < chars.length() && chars[i] != '}' {
+    // Skip whitespace and commas
+    while i < chars.length() && (chars[i] == ' ' || chars[i] == ',' || chars[i] == '\n') {
+      i += 1
+    }
+    if i >= chars.length() || chars[i] == '}' {
+      break
+    }
+    // Skip key (quoted)
+    if chars[i] == '"' {
+      i += 1 // skip opening "
+      while i < chars.length() && chars[i] != '"' {
+        i += 1
+      }
+      i += 1 // skip closing "
+    }
+    // Skip colon
+    while i < chars.length() && (chars[i] == ':' || chars[i] == ' ') {
+      i += 1
+    }
+    // Parse value (quoted)
+    if i < chars.length() && chars[i] == '"' {
+      i += 1 // skip opening "
+      let buf = StringBuilder::new()
+      while i < chars.length() && chars[i] != '"' {
+        buf.write_char(chars[i])
+        i += 1
+      }
+      result.push(buf.to_string())
+      i += 1 // skip closing "
+    }
+  }
+  result
 }
 
 ///|
