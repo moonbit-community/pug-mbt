@@ -1,9 +1,8 @@
 {
   "is-main": true,
   "import": [
-    {
-      "path": "username/pug",
-      "alias": "lib"
-    }
+    { "path": "username/pug", "alias": "pug" },
+    "moonbitlang/x/fs",
+    "moonbitlang/x/sys"
   ]
 }

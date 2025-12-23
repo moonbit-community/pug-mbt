@@ -3,6 +3,7 @@
     "moonbitlang/x/fs"
   ],
   "targets": {
+    "interpolation_js_test.mbt": ["js"],
     "js_eval.mbt": ["js"],
     "js_eval_stub.mbt": ["not", "js"],
     "js_test.mbt": ["js"],
