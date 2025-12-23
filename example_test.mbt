@@ -4,7 +4,7 @@
 /// Compare with: node example_test.js
 test "include example - simple API" {
   // Just like pug.renderFile() in JavaScript!
-  let html = render_file("example/includes/index.pug")
+  let html = render_file("example/index.pug")
   // Expected output from official Pug: node example_test.js
   inspect(
     html,
