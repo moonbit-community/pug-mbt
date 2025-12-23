@@ -19,6 +19,8 @@ pub enum Token {
   Interpolation(String)
   /// Unescaped interpolation !{name}
   UnescapedInterpolation(String)
+  /// Tag interpolation #[tag content]
+  TagInterpolation(String)
   /// Start of attributes (
   LParen
   /// End of attributes )
@@ -216,6 +218,36 @@ fn trim_leading_space(s : String) -> String {
 }
 
 ///|
+/// Read tag interpolation content, handling nested brackets
+fn Lexer::read_tag_interpolation(self : Lexer) -> String {
+  let buf = StringBuilder::new()
+  let mut depth = 1
+  while self.pos < self.chars.length() && depth > 0 {
+    match self.peek() {
+      Some('[') => {
+        depth += 1
+        buf.write_char('[')
+        let _ = self.advance()
+      }
+      Some(']') => {
+        depth -= 1
+        if depth > 0 {
+          buf.write_char(']')
+        }
+        let _ = self.advance()
+      }
+      Some('\n') => break // Don't cross line boundaries
+      Some(c) => {
+        buf.write_char(c)
+        let _ = self.advance()
+      }
+      None => break
+    }
+  }
+  buf.to_string()
+}
+
+///|
 /// Parse text with interpolations, returning alternating Text/Interpolation tokens
 fn Lexer::parse_text_with_interpolations(
   self : Lexer,
@@ -223,8 +255,19 @@ fn Lexer::parse_text_with_interpolations(
 ) -> Unit {
   let buf = StringBuilder::new()
   while self.peek() is Some(c) && c != '\n' {
-    // Check for escaped interpolation #{...}
-    if c == '#' && self.peek_ahead(1) is Some('{') {
+    // Check for tag interpolation #[...]
+    if c == '#' && self.peek_ahead(1) is Some('[') {
+      // Flush accumulated text
+      if buf.to_string().length() > 0 {
+        tokens.push(Text(buf.to_string()))
+        buf.reset()
+      }
+      let _ = self.advance() // consume #
+      let _ = self.advance() // consume [
+      let content = self.read_tag_interpolation()
+      tokens.push(TagInterpolation(content))
+    } else if c == '#' && self.peek_ahead(1) is Some('{') {
+      // Check for escaped interpolation #{...}
       // Flush accumulated text
       if buf.to_string().length() > 0 {
         tokens.push(Text(buf.to_string()))

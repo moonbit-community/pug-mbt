@@ -38,6 +38,27 @@ fn Parser::skip_newlines(self : Parser) -> Unit {
 }
 
 ///|
+/// Parse tag interpolation content (e.g., "strong important" or "a(href=\"/\") here")
+fn parse_tag_interpolation(content : String) -> Node? {
+  // Tokenize the content and parse as an inline element
+  let tokens = tokenize(content)
+  // Filter out Indent and Newline/EOF tokens
+  let filtered : Array[Token] = []
+  for tok in tokens {
+    match tok {
+      Indent(_) | Newline | EOF => ()
+      _ => filtered.push(tok)
+    }
+  }
+  if filtered.is_empty() {
+    return None
+  }
+  filtered.push(EOF)
+  let parser = Parser::new(filtered)
+  parser.parse_inline_element()
+}
+
+///|
 /// Parse an inline element (for block expansion, no Indent token)
 fn Parser::parse_inline_element(self : Parser) -> Node? {
   let mut tag = "div"
@@ -106,7 +127,7 @@ fn Parser::parse_inline_element(self : Parser) -> Node? {
     }
   }
 
-  // Parse text and interpolation
+  // Parse text, interpolation, and tag interpolation
   while true {
     match self.peek() {
       Some(Text(t)) => {
@@ -119,6 +140,13 @@ fn Parser::parse_inline_element(self : Parser) -> Node? {
       }
       Some(Token::UnescapedInterpolation(name)) => {
         children.push(Node::UnescapedInterpolation(name))
+        let _ = self.advance()
+      }
+      Some(Token::TagInterpolation(content)) => {
+        match parse_tag_interpolation(content) {
+          Some(node) => children.push(node)
+          None => ()
+        }
         let _ = self.advance()
       }
       _ => break
@@ -232,7 +260,7 @@ fn Parser::parse_element(self : Parser) -> Node? {
     is_block_text = true
   }
 
-  // Parse text and interpolation tokens as inline children
+  // Parse text, interpolation, and tag interpolation tokens as inline children
   while true {
     match self.peek() {
       Some(Text(t)) => {
@@ -245,6 +273,13 @@ fn Parser::parse_element(self : Parser) -> Node? {
       }
       Some(Token::UnescapedInterpolation(name)) => {
         children.push(Node::UnescapedInterpolation(name))
+        let _ = self.advance()
+      }
+      Some(Token::TagInterpolation(content)) => {
+        match parse_tag_interpolation(content) {
+          Some(node) => children.push(node)
+          None => ()
+        }
         let _ = self.advance()
       }
       _ => break

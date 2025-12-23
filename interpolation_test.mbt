@@ -31,21 +31,18 @@ test "mixed escaped and unescaped" {
 }
 
 ///|
-#skip // TODO: Tag interpolation #[] needs lexer/parser implementation
 test "tag interpolation with #[]" {
   let html = render("p This is #[strong important] text")
   inspect(html, content="<p>This is <strong>important</strong> text</p>")
 }
 
 ///|
-#skip // TODO: Tag interpolation #[] needs lexer/parser implementation
 test "tag interpolation with attributes" {
   let html = render("p Click #[a(href=\"/\") here] to continue")
   inspect(html, content="<p>Click <a href=\"/\">here</a> to continue</p>")
 }
 
 ///|
-#skip // TODO: Tag interpolation #[] needs lexer/parser implementation
 test "nested tag interpolation" {
   let html = render("p #[strong #[em nested]] content")
   inspect(html, content="<p><strong><em>nested</em></strong> content</p>")
