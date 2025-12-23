@@ -122,6 +122,13 @@ pub enum Node {
   Comment(text~ : String, render~ : Bool)
   /// Document type declaration
   Doctype(String)
+  /// Conditional (if/unless with optional else)
+  Conditional(
+    condition~ : String,
+    if_true~ : Array[Node],
+    if_false~ : Array[Node],
+    is_unless~ : Bool,
+  )
 } derive(Show, Eq)
 
 ///|

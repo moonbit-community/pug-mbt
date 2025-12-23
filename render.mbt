@@ -171,6 +171,21 @@ fn render_node_with_locals(
         buf.write_string("-->")
         buf.write_string(newline)
       }
+    Conditional(condition~, if_true~, if_false~, is_unless~) => {
+      // Evaluate the condition
+      let cond_result = evaluate_condition(condition, locals)
+      // For unless, invert the result
+      let should_render_true = if is_unless { not(cond_result) } else { cond_result }
+      if should_render_true {
+        for child in if_true {
+          render_node_with_locals(child, buf, options, locals, depth)
+        }
+      } else {
+        for child in if_false {
+          render_node_with_locals(child, buf, options, locals, depth)
+        }
+      }
+    }
     Element(tag~, id~, classes~, attributes~, children~) => {
       buf.write_string(indent)
       buf.write_string("<")
@@ -249,6 +264,52 @@ fn render_node_with_locals(
         buf.write_string(newline)
       }
     }
+  }
+}
+
+///|
+/// Evaluate a condition expression against locals
+fn evaluate_condition(condition : String, locals : Locals) -> Bool {
+  // Handle equality comparison: variable == "value"
+  if condition.contains("==") {
+    let parts = condition.to_array()
+    let buf = StringBuilder::new()
+    let mut found_eq = false
+    let mut var_name = ""
+    let mut expected = ""
+    let mut i = 0
+    while i < parts.length() {
+      if i + 1 < parts.length() && parts[i] == '=' && parts[i + 1] == '=' {
+        var_name = buf.to_string().trim(chars=" \t").to_string()
+        buf.reset()
+        i += 2
+        found_eq = true
+        // Skip spaces after ==
+        while i < parts.length() && parts[i] == ' ' {
+          i += 1
+        }
+        continue
+      }
+      buf.write_char(parts[i])
+      i += 1
+    }
+    if found_eq {
+      expected = buf.to_string().trim(chars=" \t").to_string()
+      // Remove quotes from expected value
+      if expected.has_prefix("\"") && expected.has_suffix("\"") {
+        expected = try! expected[1:expected.length() - 1].to_string()
+      }
+      match locals.get(var_name) {
+        Some(v) => return v == expected
+        None => return false
+      }
+    }
+  }
+  // Simple variable check - truthy if exists and not "false" or empty
+  let var_name = condition.trim(chars=" \t").to_string()
+  match locals.get(var_name) {
+    Some(v) => v != "" && v != "false"
+    None => false
   }
 }
 

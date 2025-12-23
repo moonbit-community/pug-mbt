@@ -43,6 +43,14 @@ pub enum Token {
   BlockTextMarker
   /// Block text content (raw text lines)
   BlockText(String)
+  /// If conditional with condition expression
+  If(String)
+  /// Else if conditional with condition expression
+  ElseIf(String)
+  /// Else keyword
+  Else
+  /// Unless conditional with condition expression
+  Unless(String)
   /// End of input
   EOF
 } derive(Show, Eq)
@@ -385,6 +393,52 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
     self.skip_while(fn(c) { c == ' ' })
     let doctype_value = self.read_line_text()
     tokens.push(Doctype(doctype_value))
+    if self.peek() is Some('\n') {
+      let _ = self.advance()
+      tokens.push(Newline)
+    }
+    return tokens
+  }
+
+  // Check for conditionals: if, else if, else, unless
+  if self.starts_with("if ") || self.starts_with("if\n") {
+    self.skip_n(2) // consume "if"
+    self.skip_while(fn(c) { c == ' ' })
+    let condition = self.read_line_text()
+    tokens.push(If(condition))
+    if self.peek() is Some('\n') {
+      let _ = self.advance()
+      tokens.push(Newline)
+    }
+    return tokens
+  }
+
+  if self.starts_with("else if ") {
+    self.skip_n(8) // consume "else if "
+    let condition = self.read_line_text()
+    tokens.push(ElseIf(condition))
+    if self.peek() is Some('\n') {
+      let _ = self.advance()
+      tokens.push(Newline)
+    }
+    return tokens
+  }
+
+  if self.starts_with("else") &&
+    (self.peek_ahead(4) is Some('\n') || self.peek_ahead(4) is None) {
+    self.skip_n(4) // consume "else"
+    tokens.push(Else)
+    if self.peek() is Some('\n') {
+      let _ = self.advance()
+      tokens.push(Newline)
+    }
+    return tokens
+  }
+
+  if self.starts_with("unless ") {
+    self.skip_n(7) // consume "unless "
+    let condition = self.read_line_text()
+    tokens.push(Unless(condition))
     if self.peek() is Some('\n') {
       let _ = self.advance()
       tokens.push(Newline)

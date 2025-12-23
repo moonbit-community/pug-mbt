@@ -188,6 +188,38 @@ fn Parser::parse_element(self : Parser) -> Node? {
       let _ = self.advance()
       return Some(Text(text))
     }
+    Some(Token::If(condition)) => {
+      let _ = self.advance()
+      // Children will be added by build_tree
+      return Some(
+        Conditional(condition~, if_true=[], if_false=[], is_unless=false),
+      )
+    }
+    Some(Token::Unless(condition)) => {
+      let _ = self.advance()
+      return Some(
+        Conditional(condition~, if_true=[], if_false=[], is_unless=true),
+      )
+    }
+    Some(Token::ElseIf(condition)) => {
+      let _ = self.advance()
+      // ElseIf is treated as a new conditional that will be nested in if_false
+      return Some(
+        Conditional(condition~, if_true=[], if_false=[], is_unless=false),
+      )
+    }
+    Some(Token::Else) => {
+      let _ = self.advance()
+      // Else is a marker - we'll use a special condition "else" to identify it
+      return Some(
+        Conditional(
+          condition="__else__",
+          if_true=[],
+          if_false=[],
+          is_unless=false,
+        ),
+      )
+    }
     _ => ()
   }
 
@@ -373,6 +405,8 @@ fn build_tree(lines : Array[ParsedLine]) -> Array[Node] {
 
   let result : Array[Node] = []
   let stack : Array[(Int, Node)] = [] // (indent, node) pairs
+  // Track recent conditionals at each indent level for else linking
+  let recent_conditionals : Map[Int, Node] = {}
 
   for line in lines {
     let indent = line.indent
@@ -382,7 +416,11 @@ fn build_tree(lines : Array[ParsedLine]) -> Array[Node] {
     while stack.length() > 0 {
       let (parent_indent, _) = stack[stack.length() - 1]
       if parent_indent >= indent {
-        let (_, completed) = stack.pop().unwrap()
+        let (popped_indent, completed) = stack.pop().unwrap()
+        // Track completed conditionals for else linking
+        if is_conditional(completed) && not(is_else_marker(completed)) {
+          recent_conditionals[popped_indent] = completed
+        }
         if stack.length() > 0 {
           // Add to parent's children
           let (_, parent) = stack[stack.length() - 1]
@@ -396,13 +434,78 @@ fn build_tree(lines : Array[ParsedLine]) -> Array[Node] {
       }
     }
 
-    // Push current node to stack
-    stack.push((indent, node))
+    // Handle else/else if - link to previous conditional at same indent
+    if is_else_marker(node) {
+      // This is an else block - find the recent conditional at this indent
+      match recent_conditionals.get(indent) {
+        Some(prev_cond) => {
+          // The else marker's children will be collected, then added to prev_cond's if_false
+          // For now, push a special wrapper that we'll process later
+          stack.push((indent, node))
+        }
+        None => {
+          // No matching if - just ignore
+          ()
+        }
+      }
+      continue
+    }
+
+    // Handle else if - similar to else but it's a new conditional
+    match node {
+      Conditional(condition~, ..) if condition != "__else__" => {
+        // Check if there's a recent conditional at this indent to link to
+        match recent_conditionals.get(indent) {
+          Some(prev_cond) => {
+            // This else-if should be added to prev_cond's if_false
+            // But first process it as a child collector
+            match prev_cond {
+              Conditional(if_false~, ..) => {
+                // The else-if becomes nested in if_false
+                // Push to stack to collect its children
+                stack.push((indent, node))
+                // Mark this indent as having a new conditional
+                // It will be properly linked when popped
+              }
+              _ => stack.push((indent, node))
+            }
+          }
+          None => {
+            // No previous if - this is a standalone if
+            stack.push((indent, node))
+          }
+        }
+      }
+      _ => {
+        // Regular node - push to stack
+        stack.push((indent, node))
+      }
+    }
   }
 
   // Pop remaining items from stack
   while stack.length() > 0 {
-    let (_, completed) = stack.pop().unwrap()
+    let (popped_indent, completed) = stack.pop().unwrap()
+    // Handle else marker - add its children to the recent conditional's if_false
+    if is_else_marker(completed) {
+      match recent_conditionals.get(popped_indent) {
+        Some(prev_cond) => {
+          // Get the children collected under the else marker
+          match completed {
+            Conditional(if_true=else_children, ..) => {
+              add_else_branch(prev_cond, else_children)
+            }
+            _ => ()
+          }
+        }
+        None => ()
+      }
+      continue
+    }
+    // Track completed conditionals
+    if is_conditional(completed) {
+      recent_conditionals[popped_indent] = completed
+    }
     if stack.length() > 0 {
       let (_, parent) = stack[stack.length() - 1]
       add_child(parent, completed)
@@ -415,11 +518,40 @@ fn build_tree(lines : Array[ParsedLine]) -> Array[Node] {
 }
 
 ///|
-/// Add a child to an Element node
+/// Add a child to an Element or Conditional node
 fn add_child(parent : Node, child : Node) -> Unit {
   match parent {
     Element(children~, ..) => children.push(child)
-    _ => () // Can't add children to non-element nodes
+    Conditional(if_true~, ..) => if_true.push(child)
+    _ => () // Can't add children to other node types
+  }
+}
+
+///|
+/// Check if a node is an else marker (Conditional with condition "__else__")
+fn is_else_marker(node : Node) -> Bool {
+  match node {
+    Conditional(condition~, ..) => condition == "__else__"
+    _ => false
+  }
+}
+
+///|
+/// Check if a node is a Conditional (if/else if)
+fn is_conditional(node : Node) -> Bool {
+  node is Conditional(_)
+}
+
+///|
+/// Add else branch to a conditional
+fn add_else_branch(cond : Node, else_children : Array[Node]) -> Unit {
+  match cond {
+    Conditional(if_false~, ..) => {
+      for child in else_children {
+        if_false.push(child)
+      }
+    }
+    _ => ()
   }
 }
 

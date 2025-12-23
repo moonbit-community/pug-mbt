@@ -4,7 +4,6 @@
 /// TODO: Implement if/else/unless as control structures, not HTML tags
 
 ///|
-#skip
 test "if true condition" {
   let pug =
     #|if show
@@ -16,7 +15,6 @@ test "if true condition" {
 }
 
 ///|
-#skip
 test "if false condition" {
   let pug =
     #|if show
@@ -28,7 +26,6 @@ test "if false condition" {
 }
 
 ///|
-#skip
 test "if-else" {
   let pug =
     #|if loggedIn
@@ -58,7 +55,6 @@ test "if-else if-else" {
 }
 
 ///|
-#skip
 test "unless true" {
   let pug =
     #|unless hidden
@@ -70,7 +66,6 @@ test "unless true" {
 }
 
 ///|
-#skip
 test "unless false" {
   let pug =
     #|unless hidden
@@ -98,7 +93,6 @@ test "nested conditionals" {
 }
 
 ///|
-#skip
 test "conditional with variable check" {
   let pug =
     #|if name
