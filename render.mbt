@@ -1424,3 +1424,124 @@ pub fn render_with_registry(
     options=RenderOptions::default(),
   )
 }
+
+///|
+/// Get directory part of a path
+fn dirname(path : String) -> String {
+  let chars = path.to_array()
+  let mut last_slash = -1
+  for i, c in chars {
+    if c == '/' {
+      last_slash = i
+    }
+  }
+  if last_slash <= 0 {
+    "."
+  } else {
+    let buf = StringBuilder::new()
+    for i in 0..<last_slash {
+      buf.write_char(chars[i])
+    }
+    buf.to_string()
+  }
+}
+
+///|
+/// Join two paths
+fn path_join(base : String, relative : String) -> String {
+  if relative.has_prefix("/") {
+    relative
+  } else if base == "." {
+    relative
+  } else {
+    base + "/" + relative
+  }
+}
+
+///|
+/// Collect all include/extends paths from nodes
+fn collect_dependencies(nodes : Iter[Node], deps : Array[String]) -> Unit {
+  for node in nodes {
+    match node {
+      Include(path~) => deps.push(path)
+      Extends(path~) => deps.push(path)
+      Element(children~, ..) => collect_dependencies(children.iter(), deps)
+      Conditional(if_true~, if_false~, ..) => {
+        collect_dependencies(if_true.iter(), deps)
+        collect_dependencies(if_false.iter(), deps)
+      }
+      NamedBlock(body~, ..) => collect_dependencies(body.iter(), deps)
+      _ => ()
+    }
+  }
+}
+
+///|
+/// Load a template and all its dependencies recursively
+fn load_template_recursive(
+  path : String,
+  base_dir : String,
+  registry : TemplateRegistry,
+  visited : Map[String, Bool],
+) -> Unit raise @fs.IOError {
+  let full_path = path_join(base_dir, path)
+  if visited.contains(full_path) {
+    return
+  }
+  visited[full_path] = true
+  // Load the template
+  let source = @fs.read_file_to_string(full_path)
+  registry.register(path, source)
+  // Parse and find dependencies
+  let doc = parse(source)
+  let deps : Array[String] = []
+  collect_dependencies(doc.iter(), deps)
+  // Load dependencies relative to this template's directory
+  let template_dir = dirname(full_path)
+  for dep in deps {
+    load_template_recursive(dep, template_dir, registry, visited)
+  }
+}
+
+///|
+/// Render a Pug file - automatically loads includes/extends
+/// This is the simple API similar to pug.renderFile()
+pub fn render_file(path : String) -> String raise @fs.IOError {
+  render_file_with_locals(path, Locals::new())
+}
+
+///|
+/// Render a Pug file with locals
+pub fn render_file_with_locals(
+  path : String,
+  locals : Locals,
+) -> String raise @fs.IOError {
+  let registry = TemplateRegistry::new()
+  let visited : Map[String, Bool] = {}
+  let base_dir = dirname(path)
+  let filename = if path.contains("/") {
+    let chars = path.to_array()
+    let mut last_slash = 0
+    for i, c in chars {
+      if c == '/' {
+        last_slash = i
+      }
+    }
+    let buf = StringBuilder::new()
+    for i in (last_slash + 1)..<chars.length() {
+      buf.write_char(chars[i])
+    }
+    buf.to_string()
+  } else {
+    path
+  }
+  // Load main template and all dependencies
+  load_template_recursive(filename, base_dir, registry, visited)
+  // Read and render
+  let source = @fs.read_file_to_string(path)
+  parse(source).render_with_registry(
+    locals,
+    registry,
+    options=RenderOptions::default(),
+  )
+}
