@@ -74,7 +74,10 @@ pub enum Node {
   Block
   VarAssign(name~ : String, value~ : String)
   While(condition~ : String, body~ : Array[Node])
-  NamedBlock(name~ : String, body~ : Array[Node])
+  NamedBlock(name~ : String, body~ : Array[Node], mode~ : String)
+  Include(path~ : String)
+  Extends(path~ : String)
+  Filter(name~ : String, content~ : String)
 }
 pub impl Eq for Node
 pub impl Show for Node
@@ -129,6 +132,11 @@ pub enum Token {
   VarAssign(String, String)
   While(String)
   NamedBlock(String)
+  AppendBlock(String)
+  PrependBlock(String)
+  Include(String)
+  Extends(String)
+  Filter(String, String)
   EOF
 }
 pub impl Eq for Token

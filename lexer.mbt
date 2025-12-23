@@ -77,6 +77,16 @@ pub enum Token {
   While(String)
   /// Named block: block name
   NamedBlock(String)
+  /// Append to block: append name
+  AppendBlock(String)
+  /// Prepend to block: prepend name
+  PrependBlock(String)
+  /// Include: include path
+  Include(String)
+  /// Extends: extends path
+  Extends(String)
+  /// Filter: :filter_name with content
+  Filter(String, String)
   /// End of input
   EOF
 } derive(Show, Eq)
@@ -781,6 +791,131 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
       let _ = self.advance()
       tokens.push(Newline)
     }
+    return tokens
+  }
+
+  // Check for append (append to block)
+  if self.starts_with("append ") {
+    self.skip_n(7) // consume "append "
+    let name = self.read_line_text().trim(chars=" \t").to_string()
+    tokens.push(AppendBlock(name))
+    if self.peek() is Some('\n') {
+      let _ = self.advance()
+      tokens.push(Newline)
+    }
+    return tokens
+  }
+
+  // Check for prepend (prepend to block)
+  if self.starts_with("prepend ") {
+    self.skip_n(8) // consume "prepend "
+    let name = self.read_line_text().trim(chars=" \t").to_string()
+    tokens.push(PrependBlock(name))
+    if self.peek() is Some('\n') {
+      let _ = self.advance()
+      tokens.push(Newline)
+    }
+    return tokens
+  }
+
+  // Check for include (template inclusion)
+  if self.starts_with("include ") {
+    self.skip_n(8) // consume "include "
+    let path = self.read_line_text().trim(chars=" \t").to_string()
+    tokens.push(Include(path))
+    if self.peek() is Some('\n') {
+      let _ = self.advance()
+      tokens.push(Newline)
+    }
+    return tokens
+  }
+
+  // Check for extends (template inheritance)
+  if self.starts_with("extends ") {
+    self.skip_n(8) // consume "extends "
+    let path = self.read_line_text().trim(chars=" \t").to_string()
+    tokens.push(Extends(path))
+    if self.peek() is Some('\n') {
+      let _ = self.advance()
+      tokens.push(Newline)
+    }
+    return tokens
+  }
+
+  // Check for filter (:filter_name followed by indented content)
+  if self.peek() is Some(':') && self.peek_ahead(1) is Some(c) && is_alpha(c) {
+    let _ = self.advance() // consume ':'
+    // Read filter name
+    let name_buf = StringBuilder::new()
+    while self.peek() is Some(c) && is_tag_char(c) {
+      name_buf.write_char(c)
+      let _ = self.advance()
+
+    }
+    let filter_name = name_buf.to_string()
+    // Skip to end of line
+    while self.peek() is Some(c) && c != '\n' {
+      let _ = self.advance()
+
+    }
+    if self.peek() is Some('\n') {
+      let _ = self.advance()
+
+    }
+    // Read indented content (indentation level should be greater than current)
+    let content_buf = StringBuilder::new()
+    let base_indent = indent
+    while self.peek() is Some(_) {
+      // Check current line's indentation
+      let mut line_indent = 0
+      while self.peek() is Some(' ') {
+        line_indent += 1
+        let _ = self.advance()
+
+      }
+      while self.peek() is Some('\t') {
+        line_indent += 2
+        let _ = self.advance()
+
+      }
+      // If less indented or at same level, we're done with filter content
+      if line_indent <= base_indent &&
+        self.peek() is Some(_) &&
+        self.peek() is Some(c) &&
+        c != '\n' {
+        // Put back the indentation chars
+        self.pos -= line_indent
+        break
+      }
+      // If empty line, add newline and continue
+      if self.peek() is Some('\n') {
+        let _ = self.advance()
+        if content_buf.to_string().length() > 0 {
+          content_buf.write_string("\n")
+        }
+        continue
+      }
+      // If end of file, break
+      if self.peek() is None {
+        break
+      }
+      // Read line content (skip the first base_indent + 2 spaces from indentation)
+      let line_buf = StringBuilder::new()
+      while self.peek() is Some(c) && c != '\n' {
+        line_buf.write_char(c)
+        let _ = self.advance()
+
+      }
+      if content_buf.to_string().length() > 0 {
+        content_buf.write_string("\n")
+      }
+      content_buf.write_string(line_buf.to_string())
+      if self.peek() is Some('\n') {
+        let _ = self.advance()
+
+      }
+    }
+    tokens.push(Filter(filter_name, content_buf.to_string()))
     return tokens
   }
 

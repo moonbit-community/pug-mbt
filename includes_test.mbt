@@ -3,7 +3,6 @@
 /// Reference: https://pugjs.org/language/includes.html
 
 ///|
-#skip
 test "simple include parsing" {
   // Include requires a template registry
   // For now just test parsing

@@ -168,7 +168,14 @@ pub enum Node {
   /// While loop
   While(condition~ : String, body~ : Array[Node])
   /// Named block (for template inheritance)
-  NamedBlock(name~ : String, body~ : Array[Node])
+  /// mode: "replace" (default), "append", or "prepend"
+  NamedBlock(name~ : String, body~ : Array[Node], mode~ : String)
+  /// Include statement (for template inclusion)
+  Include(path~ : String)
+  /// Extends statement (for template inheritance)
+  Extends(path~ : String)
+  /// Filter statement (:filter_name content)
+  Filter(name~ : String, content~ : String)
 } derive(Show, Eq)
 
 ///|

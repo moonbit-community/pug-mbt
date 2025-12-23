@@ -10,6 +10,56 @@ fn MixinStore::new() -> MixinStore {
 }
 
 ///|
+/// Block storage for template inheritance
+priv struct BlockStore {
+  // name -> (prepend nodes, append nodes)
+  blocks : Map[String, (Array[Node], Array[Node])]
+}
+
+///|
+fn BlockStore::new() -> BlockStore {
+  { blocks: {} }
+}
+
+///|
+fn BlockStore::add_prepend(
+  self : BlockStore,
+  name : String,
+  nodes : Array[Node],
+) -> Unit {
+  match self.blocks.get(name) {
+    Some((prepend, _append)) =>
+      for node in nodes {
+        prepend.push(node)
+      }
+    None => self.blocks[name] = (nodes, [])
+  }
+}
+
+///|
+fn BlockStore::add_append(
+  self : BlockStore,
+  name : String,
+  nodes : Array[Node],
+) -> Unit {
+  match self.blocks.get(name) {
+    Some((_prepend, append)) =>
+      for node in nodes {
+        append.push(node)
+      }
+    None => self.blocks[name] = ([], nodes)
+  }
+}
+
+///|
+fn BlockStore::get(
+  self : BlockStore,
+  name : String,
+) -> (Array[Node], Array[Node])? {
+  self.blocks.get(name)
+}
+
+///|
 fn MixinStore::add(
   self : MixinStore,
   name : String,
@@ -48,6 +98,38 @@ fn collect_mixins(nodes : Iter[Node], store : MixinStore) -> Unit {
           collect_mixins(case_body.iter(), store)
         }
         collect_mixins(default.iter(), store)
+      }
+      _ => ()
+    }
+  }
+}
+
+///|
+/// Collect all append/prepend blocks from nodes
+fn collect_blocks(nodes : Iter[Node], store : BlockStore) -> Unit {
+  for node in nodes {
+    match node {
+      NamedBlock(name~, body~, mode~) =>
+        if mode == "append" {
+          store.add_append(name, body)
+        } else if mode == "prepend" {
+          store.add_prepend(name, body)
+        }
+      Element(children~, ..) => collect_blocks(children.iter(), store)
+      Conditional(if_true~, if_false~, ..) => {
+        collect_blocks(if_true.iter(), store)
+        collect_blocks(if_false.iter(), store)
+      }
+      Each(body~, else_body~, ..) => {
+        collect_blocks(body.iter(), store)
+        collect_blocks(else_body.iter(), store)
+      }
+      Case(cases~, default~, ..) => {
+        for pair in cases {
+          let (_, case_body) = pair
+          collect_blocks(case_body.iter(), store)
+        }
+        collect_blocks(default.iter(), store)
       }
       _ => ()
     }
@@ -179,13 +261,14 @@ pub fn RenderOptions::pretty() -> RenderOptions {
 }
 
 ///|
-/// Render a single node to HTML with locals, mixins, and optional block content
+/// Render a single node to HTML with locals, mixins, blocks, and optional block content
 fn render_node_with_mixins(
   node : Node,
   buf : StringBuilder,
   options : RenderOptions,
   locals : Locals,
   mixins : MixinStore,
+  blocks : BlockStore,
   depth : Int,
   block_content : Array[Node], // Content passed to mixin via block
 ) -> Unit {
@@ -274,7 +357,7 @@ fn render_node_with_mixins(
             // Found body - render it
             for child in case_body {
               render_node_with_mixins(
-                child, buf, options, locals, mixins, depth, block_content,
+                child, buf, options, locals, mixins, blocks, depth, block_content,
               )
             }
             matched = true
@@ -286,17 +369,41 @@ fn render_node_with_mixins(
         // No match found, render default
         for child in default {
           render_node_with_mixins(
-            child, buf, options, locals, mixins, depth, block_content,
+            child, buf, options, locals, mixins, blocks, depth, block_content,
           )
         }
       }
     }
     When(..) | Default(..) => () // These should be consumed by Case during parsing
     MixinDef(..) => () // Mixin definitions are collected, not rendered
+    Include(..) => () // Include requires template registry, not yet supported
+    Extends(..) => () // Extends requires template registry, not yet supported
+    Filter(name~, content~) =>
+      // For :plain filter, output the content as-is (escaped)
+      // For other filters, output as-is for now (requires external filter handlers)
+      if name == "plain" {
+        buf.write_string(indent)
+        buf.write_string(escape_html(content))
+        buf.write_string(newline)
+      } else {
+        // For unknown filters, just output the content
+        buf.write_string(indent)
+        buf.write_string(escape_html(content))
+        buf.write_string(newline)
+      }
     Block =>
       // Render the block content passed to the mixin
       for child in block_content {
-        render_node_with_mixins(child, buf, options, locals, mixins, depth, [])
+        render_node_with_mixins(
+          child,
+          buf,
+          options,
+          locals,
+          mixins,
+          blocks,
+          depth,
+          [],
+        )
       }
     VarAssign(name~, value~) =>
       // Set variable in locals for subsequent nodes
@@ -309,19 +416,47 @@ fn render_node_with_mixins(
             iterations < max_iterations {
         for child in body {
           render_node_with_mixins(
-            child, buf, options, locals, mixins, depth, block_content,
+            child, buf, options, locals, mixins, blocks, depth, block_content,
           )
         }
         iterations += 1
       }
     }
-    NamedBlock(body~, ..) =>
-      // For simple blocks without extends, just render the body content
-      for child in body {
-        render_node_with_mixins(
-          child, buf, options, locals, mixins, depth, block_content,
-        )
+    NamedBlock(name~, body~, mode~) =>
+      // For named blocks, merge prepend/append content from BlockStore
+      if mode == "replace" {
+        // Get any prepend/append content for this block
+        match blocks.get(name) {
+          Some((prepend, append)) => {
+            // Render prepend content first
+            for child in prepend {
+              render_node_with_mixins(
+                child, buf, options, locals, mixins, blocks, depth, block_content,
+              )
+            }
+            // Then render the block's own content
+            for child in body {
+              render_node_with_mixins(
+                child, buf, options, locals, mixins, blocks, depth, block_content,
+              )
+            }
+            // Finally render append content
+            for child in append {
+              render_node_with_mixins(
+                child, buf, options, locals, mixins, blocks, depth, block_content,
+              )
+            }
+          }
+          None =>
+            // No prepend/append, just render the body
+            for child in body {
+              render_node_with_mixins(
+                child, buf, options, locals, mixins, blocks, depth, block_content,
+              )
+            }
+        }
       }
+    // append/prepend blocks are already collected, skip rendering them directly
     MixinCall(name~, args~, block~, attrs~) =>
       // Look up the mixin and expand it
       match mixins.get(name) {
@@ -367,7 +502,7 @@ fn render_node_with_mixins(
           // Render mixin body, passing the block content for "block" keyword
           for child in mixin_body {
             render_node_with_mixins(
-              child, buf, options, mixin_locals, mixins, depth, block,
+              child, buf, options, mixin_locals, mixins, blocks, depth, block,
             )
           }
         }
@@ -385,13 +520,13 @@ fn render_node_with_mixins(
       if should_render_true {
         for child in if_true {
           render_node_with_mixins(
-            child, buf, options, locals, mixins, depth, block_content,
+            child, buf, options, locals, mixins, blocks, depth, block_content,
           )
         }
       } else {
         for child in if_false {
           render_node_with_mixins(
-            child, buf, options, locals, mixins, depth, block_content,
+            child, buf, options, locals, mixins, blocks, depth, block_content,
           )
         }
       }
@@ -409,7 +544,7 @@ fn render_node_with_mixins(
         if pairs.is_empty() {
           for child in else_body {
             render_node_with_mixins(
-              child, buf, options, locals, mixins, depth, block_content,
+              child, buf, options, locals, mixins, blocks, depth, block_content,
             )
           }
         } else {
@@ -426,7 +561,7 @@ fn render_node_with_mixins(
             }
             for child in body {
               render_node_with_mixins(
-                child, buf, options, loop_locals, mixins, depth, block_content,
+                child, buf, options, loop_locals, mixins, blocks, depth, block_content,
               )
             }
           }
@@ -437,7 +572,7 @@ fn render_node_with_mixins(
         if items.is_empty() {
           for child in else_body {
             render_node_with_mixins(
-              child, buf, options, locals, mixins, depth, block_content,
+              child, buf, options, locals, mixins, blocks, depth, block_content,
             )
           }
         } else {
@@ -452,7 +587,7 @@ fn render_node_with_mixins(
             }
             for child in body {
               render_node_with_mixins(
-                child, buf, options, loop_locals, mixins, depth, block_content,
+                child, buf, options, loop_locals, mixins, blocks, depth, block_content,
               )
             }
           }
@@ -553,6 +688,7 @@ fn render_node_with_mixins(
             options,
             locals,
             mixins,
+            blocks,
             depth + 1,
             block_content,
           )
@@ -847,10 +983,13 @@ pub fn Document::render_with_locals(
   // First collect all mixin definitions
   let mixins = MixinStore::new()
   collect_mixins(self.iter(), mixins)
+  // Collect all append/prepend blocks
+  let blocks = BlockStore::new()
+  collect_blocks(self.iter(), blocks)
   // Then render all nodes
   let buf = StringBuilder::new()
   for node in self.iter() {
-    render_node_with_mixins(node, buf, options, locals, mixins, 0, [])
+    render_node_with_mixins(node, buf, options, locals, mixins, blocks, 0, [])
   }
   buf.to_string()
 }

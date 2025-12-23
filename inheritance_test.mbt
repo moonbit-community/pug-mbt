@@ -14,7 +14,6 @@ test "simple block definition" {
 }
 
 ///|
-#skip
 test "block with extends" {
   // This requires a template registry approach
   // For now, test the parsing
@@ -37,7 +36,6 @@ test "block with extends" {
 }
 
 ///|
-#skip
 test "append block" {
   let pug =
     #|html
@@ -55,7 +53,6 @@ test "append block" {
 }
 
 ///|
-#skip
 test "prepend block" {
   let pug =
     #|html

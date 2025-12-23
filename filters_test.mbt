@@ -3,7 +3,6 @@
 /// Reference: https://pugjs.org/language/filters.html
 
 ///|
-#skip
 test "simple filter parsing" {
   let pug =
     #|:plain

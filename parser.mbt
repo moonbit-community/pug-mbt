@@ -304,7 +304,27 @@ fn Parser::parse_element(self : Parser) -> Node? {
     Some(Token::NamedBlock(name)) => {
       let _ = self.advance()
       // Body will be added by build_tree
-      return Some(Node::NamedBlock(name~, body=[]))
+      return Some(Node::NamedBlock(name~, body=[], mode="replace"))
+    }
+    Some(Token::AppendBlock(name)) => {
+      let _ = self.advance()
+      return Some(Node::NamedBlock(name~, body=[], mode="append"))
+    }
+    Some(Token::PrependBlock(name)) => {
+      let _ = self.advance()
+      return Some(Node::NamedBlock(name~, body=[], mode="prepend"))
+    }
+    Some(Token::Include(path)) => {
+      let _ = self.advance()
+      return Some(Node::Include(path~))
+    }
+    Some(Token::Extends(path)) => {
+      let _ = self.advance()
+      return Some(Node::Extends(path~))
+    }
+    Some(Token::Filter(name, content)) => {
+      let _ = self.advance()
+      return Some(Node::Filter(name~, content~))
     }
     _ => ()
   }
