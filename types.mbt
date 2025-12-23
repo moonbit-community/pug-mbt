@@ -148,10 +148,16 @@ pub enum Node {
   When(value~ : String, body~ : Array[Node])
   /// Default clause (used during parsing, not in final AST)
   Default(body~ : Array[Node])
-  /// Mixin definition
-  MixinDef(name~ : String, params~ : Array[String], body~ : Array[Node])
-  /// Mixin call
-  MixinCall(name~ : String, args~ : Array[String])
+  /// Mixin definition (params are (name, default_value) pairs, rest params prefixed with "...")
+  MixinDef(
+    name~ : String,
+    params~ : Array[(String, String)],
+    body~ : Array[Node]
+  )
+  /// Mixin call (block is content passed to the mixin)
+  MixinCall(name~ : String, args~ : Array[String], block~ : Array[Node])
+  /// Block placeholder (renders mixin block content)
+  Block
 } derive(Show, Eq)
 
 ///|

@@ -69,8 +69,9 @@ pub enum Node {
   Case(expr~ : String, cases~ : Array[(String, Array[Node])], default~ : Array[Node])
   When(value~ : String, body~ : Array[Node])
   Default(body~ : Array[Node])
-  MixinDef(name~ : String, params~ : Array[String], body~ : Array[Node])
-  MixinCall(name~ : String, args~ : Array[String])
+  MixinDef(name~ : String, params~ : Array[(String, String)], body~ : Array[Node])
+  MixinCall(name~ : String, args~ : Array[String], block~ : Array[Node])
+  Block
 }
 pub impl Eq for Node
 pub impl Show for Node
@@ -117,7 +118,8 @@ pub enum Token {
   Case(String)
   When(String)
   Default
-  MixinDef(String, Array[String])
+  Block
+  MixinDef(String, Array[(String, String)])
   MixinCall(String, Array[String])
   BufferedOutput(String)
   UnescapedBufferedOutput(String)

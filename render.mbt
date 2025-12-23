@@ -1,7 +1,7 @@
 ///|
 /// Mixin storage for rendering
 priv struct MixinStore {
-  mixins : Map[String, (Array[String], Array[Node])] // name -> (params, body)
+  mixins : Map[String, (Array[(String, String)], Array[Node])] // name -> (params with defaults, body)
 }
 
 ///|
@@ -13,7 +13,7 @@ fn MixinStore::new() -> MixinStore {
 fn MixinStore::add(
   self : MixinStore,
   name : String,
-  params : Array[String],
+  params : Array[(String, String)],
   body : Array[Node],
 ) -> Unit {
   self.mixins[name] = (params, body)
@@ -23,7 +23,7 @@ fn MixinStore::add(
 fn MixinStore::get(
   self : MixinStore,
   name : String,
-) -> (Array[String], Array[Node])? {
+) -> (Array[(String, String)], Array[Node])? {
   self.mixins.get(name)
 }
 
@@ -179,7 +179,7 @@ pub fn RenderOptions::pretty() -> RenderOptions {
 }
 
 ///|
-/// Render a single node to HTML with locals and mixins
+/// Render a single node to HTML with locals, mixins, and optional block content
 fn render_node_with_mixins(
   node : Node,
   buf : StringBuilder,
@@ -187,6 +187,7 @@ fn render_node_with_mixins(
   locals : Locals,
   mixins : MixinStore,
   depth : Int,
+  block_content : Array[Node], // Content passed to mixin via block
 ) -> Unit {
   let indent = if options.pretty {
     let mut s = ""
@@ -259,7 +260,7 @@ fn render_node_with_mixins(
             // Found body - render it
             for child in case_body {
               render_node_with_mixins(
-                child, buf, options, locals, mixins, depth,
+                child, buf, options, locals, mixins, depth, block_content,
               )
             }
             matched = true
@@ -270,32 +271,60 @@ fn render_node_with_mixins(
       if not(matched) {
         // No match found, render default
         for child in default {
-          render_node_with_mixins(child, buf, options, locals, mixins, depth)
+          render_node_with_mixins(
+            child, buf, options, locals, mixins, depth, block_content,
+          )
         }
       }
     }
     When(..) | Default(..) => () // These should be consumed by Case during parsing
     MixinDef(..) => () // Mixin definitions are collected, not rendered
-    MixinCall(name~, args~) =>
+    Block =>
+      // Render the block content passed to the mixin
+      for child in block_content {
+        render_node_with_mixins(child, buf, options, locals, mixins, depth, [])
+      }
+    MixinCall(name~, args~, block~) =>
       // Look up the mixin and expand it
       match mixins.get(name) {
-        Some((params, body)) => {
+        Some((params, mixin_body)) => {
           // Create locals with arguments bound to parameters
           let mixin_locals = Locals::new()
           // Copy parent locals
           for k, v in locals.0 {
             mixin_locals.set(k, v)
           }
-          // Bind arguments to parameters
-          for i, param in params {
-            if i < args.length() {
-              mixin_locals.set(param, args[i])
+          // Set block local for "if block" checks
+          if block.length() > 0 {
+            mixin_locals.set("block", "true")
+          }
+          // Bind arguments to parameters, handling defaults and rest params
+          let mut arg_idx = 0
+          for param_pair in params {
+            let (param_name, default_val) = param_pair
+            // Check if this is a rest parameter
+            if param_name.has_prefix("...") {
+              // Rest parameter - collect remaining args as JSON array
+              let rest_name = try! param_name[3:].to_string()
+              let rest_args : Array[String] = []
+              while arg_idx < args.length() {
+                rest_args.push(args[arg_idx])
+                arg_idx += 1
+              }
+              mixin_locals.set_array(rest_name, rest_args)
+            } else if arg_idx < args.length() {
+              // Regular parameter with provided argument
+              mixin_locals.set(param_name, args[arg_idx])
+              arg_idx += 1
+            } else if default_val.length() > 0 {
+              // No argument provided, use default value
+              mixin_locals.set(param_name, default_val)
             }
           }
-          // Render mixin body
-          for child in body {
+          // Render mixin body, passing the block content for "block" keyword
+          for child in mixin_body {
             render_node_with_mixins(
-              child, buf, options, mixin_locals, mixins, depth,
+              child, buf, options, mixin_locals, mixins, depth, block,
             )
           }
         }
@@ -312,11 +341,15 @@ fn render_node_with_mixins(
       }
       if should_render_true {
         for child in if_true {
-          render_node_with_mixins(child, buf, options, locals, mixins, depth)
+          render_node_with_mixins(
+            child, buf, options, locals, mixins, depth, block_content,
+          )
         }
       } else {
         for child in if_false {
-          render_node_with_mixins(child, buf, options, locals, mixins, depth)
+          render_node_with_mixins(
+            child, buf, options, locals, mixins, depth, block_content,
+          )
         }
       }
     }
@@ -332,7 +365,9 @@ fn render_node_with_mixins(
         let pairs = parse_json_object_pairs(coll_value)
         if pairs.is_empty() {
           for child in else_body {
-            render_node_with_mixins(child, buf, options, locals, mixins, depth)
+            render_node_with_mixins(
+              child, buf, options, locals, mixins, depth, block_content,
+            )
           }
         } else {
           for pair in pairs {
@@ -348,7 +383,7 @@ fn render_node_with_mixins(
             }
             for child in body {
               render_node_with_mixins(
-                child, buf, options, loop_locals, mixins, depth,
+                child, buf, options, loop_locals, mixins, depth, block_content,
               )
             }
           }
@@ -358,7 +393,9 @@ fn render_node_with_mixins(
         let items = parse_collection(coll_value)
         if items.is_empty() {
           for child in else_body {
-            render_node_with_mixins(child, buf, options, locals, mixins, depth)
+            render_node_with_mixins(
+              child, buf, options, locals, mixins, depth, block_content,
+            )
           }
         } else {
           for i, item in items {
@@ -372,7 +409,7 @@ fn render_node_with_mixins(
             }
             for child in body {
               render_node_with_mixins(
-                child, buf, options, loop_locals, mixins, depth,
+                child, buf, options, loop_locals, mixins, depth, block_content,
               )
             }
           }
@@ -474,6 +511,7 @@ fn render_node_with_mixins(
             locals,
             mixins,
             depth + 1,
+            block_content,
           )
         }
         buf.write_string(indent)
@@ -725,7 +763,7 @@ pub fn Document::render_with_locals(
   // Then render all nodes
   let buf = StringBuilder::new()
   for node in self.iter() {
-    render_node_with_mixins(node, buf, options, locals, mixins, 0)
+    render_node_with_mixins(node, buf, options, locals, mixins, 0, [])
   }
   buf.to_string()
 }

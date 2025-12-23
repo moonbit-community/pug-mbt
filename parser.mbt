@@ -285,7 +285,12 @@ fn Parser::parse_element(self : Parser) -> Node? {
     }
     Some(Token::MixinCall(name, args)) => {
       let _ = self.advance()
-      return Some(MixinCall(name~, args~))
+      // Block content will be added via add_child in build_tree
+      return Some(MixinCall(name~, args~, block=[]))
+    }
+    Some(Token::Block) => {
+      let _ = self.advance()
+      return Some(Node::Block)
     }
     _ => ()
   }
@@ -563,7 +568,7 @@ fn build_tree(lines : Array[ParsedLine]) -> Array[Node] {
             // This else-if should be added to prev_cond's if_false
             // But first process it as a child collector
             match prev_cond {
-              Conditional(if_false~, ..) =>
+              Conditional(..) =>
                 // The else-if becomes nested in if_false
                 // Push to stack to collect its children
                 stack.push((indent, node))
@@ -622,7 +627,7 @@ fn build_tree(lines : Array[ParsedLine]) -> Array[Node] {
 }
 
 ///|
-/// Add a child to an Element, Conditional, Each, When, Default, Case, or MixinDef node
+/// Add a child to an Element, Conditional, Each, When, Default, Case, MixinDef, or MixinCall node
 fn add_child(parent : Node, child : Node) -> Unit {
   match parent {
     Element(children~, ..) => children.push(child)
@@ -631,6 +636,7 @@ fn add_child(parent : Node, child : Node) -> Unit {
     When(body~, ..) => body.push(child)
     Default(body~) => body.push(child)
     MixinDef(body~, ..) => body.push(child)
+    MixinCall(block~, ..) => block.push(child)
     Case(cases~, default~, ..) =>
       // Add When/Default as case branches
       match child {

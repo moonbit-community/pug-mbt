@@ -45,7 +45,6 @@ test "mixin with multiple arguments" {
 }
 
 ///|
-#skip
 test "mixin with block" {
   let pug =
     #|mixin article(title)
@@ -74,7 +73,6 @@ test "mixin with attributes" {
 }
 
 ///|
-#skip
 test "mixin with default argument" {
   let pug =
     #|mixin article(title="Default Title")
@@ -86,7 +84,6 @@ test "mixin with default argument" {
 }
 
 ///|
-#skip
 test "mixin with rest arguments" {
   let pug =
     #|mixin list(id, ...items)
