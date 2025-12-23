@@ -9,6 +9,15 @@ fn is_void_element(tag : String) -> Bool {
 }
 
 ///|
+/// Raw text elements - content should NOT be HTML-escaped
+fn is_raw_text_element(tag : String) -> Bool {
+  match tag {
+    "script" | "style" | "pre" | "code" | "textarea" => true
+    _ => false
+  }
+}
+
+///|
 /// Escape HTML special characters
 fn escape_html(s : String) -> String {
   let buf = StringBuilder::new()
@@ -215,7 +224,12 @@ fn render_node_with_locals(
         // Inline text content
         buf.write_string(">")
         match children[0] {
-          Text(t) => buf.write_string(escape_html(t))
+          Text(t) =>
+            if is_raw_text_element(tag) {
+              buf.write_string(t) // No escaping for script/style
+            } else {
+              buf.write_string(escape_html(t))
+            }
           _ => ()
         }
         buf.write_string("</")

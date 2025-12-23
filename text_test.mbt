@@ -43,7 +43,6 @@ test "piped text with inline tag" {
 }
 
 ///|
-#skip // TODO: Block text needs implementation
 test "block text with dot" {
   let pug =
     #|script.
@@ -57,7 +56,6 @@ test "block text with dot" {
 }
 
 ///|
-#skip // TODO: Block text needs implementation
 test "style block text" {
   let pug =
     #|style.
@@ -69,7 +67,6 @@ test "style block text" {
 }
 
 ///|
-#skip // TODO: Block text needs implementation
 test "pre block preserves whitespace" {
   let pug =
     #|pre.

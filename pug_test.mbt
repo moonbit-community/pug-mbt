@@ -192,3 +192,4 @@ test "interpolation in nested elements" {
   let html = render_with_locals(pug, locals)
   inspect(html, content="<div><p>Hello User</p><p>Welcome to MoonBit</p></div>")
 }
+

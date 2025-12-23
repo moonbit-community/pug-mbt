@@ -225,6 +225,13 @@ fn Parser::parse_element(self : Parser) -> Node? {
     }
   }
 
+  // Check for block text marker
+  let mut is_block_text = false
+  if self.peek() is Some(BlockTextMarker) {
+    let _ = self.advance()
+    is_block_text = true
+  }
+
   // Parse text and interpolation tokens as inline children
   while true {
     match self.peek() {
@@ -250,6 +257,14 @@ fn Parser::parse_element(self : Parser) -> Node? {
       let _ = self.advance()
     }
     _ => ()
+  }
+
+  // If block text mode, get the block text content
+  if is_block_text {
+    if self.peek() is Some(BlockText(content)) {
+      let _ = self.advance()
+      children.push(Text(content))
+    }
   }
 
   // If we have no explicit tag, id, class, or attributes, this might be text-only or empty

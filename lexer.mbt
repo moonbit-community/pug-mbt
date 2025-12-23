@@ -37,6 +37,10 @@ pub enum Token {
   BlockExpand
   /// Piped text |
   PipedText(String)
+  /// Block text marker (tag ends with .)
+  BlockTextMarker
+  /// Block text content (raw text lines)
+  BlockText(String)
   /// End of input
   EOF
 } derive(Show, Eq)
@@ -353,9 +357,15 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
         tokens.push(Id(id))
       }
       Some('.') => {
-        let _ = self.advance()
-        let cls = self.take_while(is_id_class_char)
-        tokens.push(Class(cls))
+        // Check if this is a block text marker (. followed by newline or EOF)
+        match self.peek_ahead(1) {
+          None | Some('\n') => break // Let block text marker handling take over
+          _ => {
+            let _ = self.advance()
+            let cls = self.take_while(is_id_class_char)
+            tokens.push(Class(cls))
+          }
+        }
       }
       _ => break
     }
@@ -471,6 +481,18 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
     }
   }
 
+  // Check for block text marker (.)
+  if self.peek() is Some('.') && (self.peek_ahead(1) is Some('\n') || self.peek_ahead(1) is None) {
+    let _ = self.advance() // consume .
+    tokens.push(BlockTextMarker)
+    // Consume newline if present
+    if self.peek() is Some('\n') {
+      let _ = self.advance()
+      tokens.push(Newline)
+    }
+    return tokens
+  }
+
   // Read text content (after space) with interpolation support
   if self.peek() is Some(' ') {
     let _ = self.advance()
@@ -489,13 +511,80 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
 }
 
 ///|
+/// Read block text content (indented raw text after .)
+fn Lexer::read_block_text(self : Lexer, base_indent : Int) -> String {
+  let buf = StringBuilder::new()
+  let mut first = true
+  while self.pos < self.chars.length() {
+    // Check indentation of this line
+    let start_pos = self.pos
+    let mut line_indent = 0
+    while self.peek() is Some(c) && (c == ' ' || c == '\t') {
+      if c == ' ' {
+        line_indent += 1
+      } else {
+        line_indent += 2
+      }
+      let _ = self.advance()
+    }
+    // If line is empty (just newline), include it but continue
+    if self.peek() is Some('\n') {
+      if not(first) {
+        buf.write_string("\n")
+      }
+      let _ = self.advance()
+      continue
+    }
+    // If indentation is <= base, we're done (restore position)
+    if line_indent <= base_indent {
+      self.pos = start_pos
+      break
+    }
+    // Add the content (minus the extra indent)
+    if not(first) {
+      buf.write_string("\n")
+    }
+    first = false
+    // Add spaces for relative indentation
+    let relative_indent = line_indent - base_indent - 2 // -2 for standard indent
+    for _ in 0..<relative_indent {
+      buf.write_string(" ")
+    }
+    let line_content = self.read_line_text()
+    buf.write_string(line_content)
+    // Consume newline
+    if self.peek() is Some('\n') {
+      let _ = self.advance()
+    }
+  }
+  buf.to_string()
+}
+
+///|
 /// Tokenize entire input
 pub fn Lexer::tokenize(self : Lexer) -> Array[Token] {
   let all_tokens : Array[Token] = []
+  let mut current_indent = 0
   while self.pos < self.chars.length() {
     let line_tokens = self.tokenize_line()
+    // Track indent level
+    for tok in line_tokens {
+      match tok {
+        Indent(n) => current_indent = n
+        _ => ()
+      }
+    }
+    // Check if we got a BlockTextMarker
+    let has_block_text = line_tokens.iter().any(fn(t) { t is BlockTextMarker })
     for tok in line_tokens {
       all_tokens.push(tok)
+    }
+    // If we have a block text marker, read the block text content
+    if has_block_text {
+      let content = self.read_block_text(current_indent)
+      if content.length() > 0 {
+        all_tokens.push(BlockText(content))
+      }
     }
     if line_tokens.last() is Some(EOF) {
       break
