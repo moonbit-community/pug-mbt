@@ -72,6 +72,7 @@ pub enum Node {
   MixinDef(name~ : String, params~ : Array[(String, String)], body~ : Array[Node])
   MixinCall(name~ : String, args~ : Array[String], block~ : Array[Node])
   Block
+  VarAssign(name~ : String, value~ : String)
 }
 pub impl Eq for Node
 pub impl Show for Node
@@ -123,6 +124,7 @@ pub enum Token {
   MixinCall(String, Array[String])
   BufferedOutput(String)
   UnescapedBufferedOutput(String)
+  VarAssign(String, String)
   EOF
 }
 pub impl Eq for Token

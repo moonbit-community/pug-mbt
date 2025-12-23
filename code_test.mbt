@@ -4,7 +4,6 @@
 /// TODO: Implement code blocks (- var, =, !=) in lexer/parser
 
 ///|
-#skip
 test "unbuffered code variable" {
   let pug =
     #|- var greeting = "Hello"
@@ -57,7 +56,6 @@ test "inline buffered code" {
 }
 
 ///|
-#skip
 test "code with conditional" {
   let pug =
     #|- var show = true
@@ -68,7 +66,6 @@ test "code with conditional" {
 }
 
 ///|
-#skip
 test "code defining list" {
   let pug =
     #|- var list = ["a", "b", "c"]

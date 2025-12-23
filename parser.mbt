@@ -292,6 +292,10 @@ fn Parser::parse_element(self : Parser) -> Node? {
       let _ = self.advance()
       return Some(Node::Block)
     }
+    Some(Token::VarAssign(name, value)) => {
+      let _ = self.advance()
+      return Some(Node::VarAssign(name~, value~))
+    }
     _ => ()
   }
 

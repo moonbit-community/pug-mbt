@@ -284,6 +284,9 @@ fn render_node_with_mixins(
       for child in block_content {
         render_node_with_mixins(child, buf, options, locals, mixins, depth, [])
       }
+    VarAssign(name~, value~) =>
+      // Set variable in locals for subsequent nodes
+      locals.set(name, value)
     MixinCall(name~, args~, block~) =>
       // Look up the mixin and expand it
       match mixins.get(name) {

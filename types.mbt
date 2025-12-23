@@ -158,6 +158,8 @@ pub enum Node {
   MixinCall(name~ : String, args~ : Array[String], block~ : Array[Node])
   /// Block placeholder (renders mixin block content)
   Block
+  /// Variable assignment (- var name = value)
+  VarAssign(name~ : String, value~ : String)
 } derive(Show, Eq)
 
 ///|
