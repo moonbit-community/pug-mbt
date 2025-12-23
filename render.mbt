@@ -1447,14 +1447,38 @@ fn dirname(path : String) -> String {
 }
 
 ///|
-/// Join two paths
+/// Normalize a path by resolving . and .. segments
+fn normalize_path(path : String) -> String {
+  let parts : Array[String] = []
+  let segments = path.split("/")
+  for seg in segments {
+    let s = seg.to_string()
+    if s == ".." {
+      if parts.length() > 0 && parts[parts.length() - 1] != ".." {
+        let _ = parts.pop()
+      } else {
+        parts.push("..")
+      }
+    } else if s != "." && s != "" {
+      parts.push(s)
+    }
+  }
+  if parts.is_empty() {
+    "."
+  } else {
+    parts.join("/")
+  }
+}
+
+///|
+/// Join two paths and normalize the result
 fn path_join(base : String, relative : String) -> String {
   if relative.has_prefix("/") {
     relative
   } else if base == "." {
-    relative
+    normalize_path(relative)
   } else {
-    base + "/" + relative
+    normalize_path(base + "/" + relative)
   }
 }
 
