@@ -1,7 +1,6 @@
 ///|
 /// Tests for Pug mixin features
 /// Reference: https://pugjs.org/language/mixins.html
-/// TODO: Implement mixins in lexer/parser
 
 ///|
 test "simple mixin definition and call" {

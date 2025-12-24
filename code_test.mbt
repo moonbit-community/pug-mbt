@@ -1,7 +1,6 @@
 ///|
 /// Tests for Pug code features
 /// Reference: https://pugjs.org/language/code.html
-/// TODO: Implement code blocks (- var, =, !=) in lexer/parser
 
 ///|
 test "unbuffered code variable" {

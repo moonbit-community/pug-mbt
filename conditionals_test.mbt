@@ -1,7 +1,6 @@
 ///|
 /// Tests for Pug conditional features
 /// Reference: https://pugjs.org/language/conditionals.html
-/// TODO: Implement if/else/unless as control structures, not HTML tags
 
 ///|
 test "if true condition" {

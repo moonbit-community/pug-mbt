@@ -1,7 +1,6 @@
 ///|
 /// Tests for Pug iteration features
 /// Reference: https://pugjs.org/language/iteration.html
-/// TODO: Implement each/for/while in lexer/parser
 
 ///|
 test "each over array" {
