@@ -2,8 +2,6 @@
 
 A Pug template engine implementation in MoonBit.
 
-Part of the [Agentic Adventures of MoonBit (AAoM)](https://github.com/user/aaom-blogs) project.
-
 ## Features
 
 - Basic HTML tag generation
