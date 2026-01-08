@@ -22,7 +22,7 @@ test "js eval - direct call" {
   let locals = Locals::new()
   locals.set("x", "5")
   let result = eval_js_expression("x + 1", locals)
-  inspect(result, content="6")
+  @json.inspect(result, content="6")
 }
 
 ///|
@@ -30,7 +30,7 @@ test "js eval - string method" {
   let locals = Locals::new()
   locals.set("s", "hello")
   let result = eval_js_expression("s.toUpperCase()", locals)
-  inspect(result, content="HELLO")
+  @json.inspect(result, content="HELLO")
 }
 
 ///|
@@ -39,7 +39,7 @@ test "js expression - method call in interpolation" {
     #|p #{msg.toUpperCase()}
   let locals = Locals::new()
   locals.set("msg", "hello")
-  inspect(render_with_locals(pug, locals), content="<p>HELLO</p>")
+  @json.inspect(render_with_locals(pug, locals), content="<p>HELLO</p>")
 }
 
 ///|
@@ -49,7 +49,7 @@ test "js expression - arithmetic in attribute" {
   let locals = Locals::new()
   locals.set("count", "5")
   // JS backend: numeric 5 + 1 = 6
-  inspect(
+  @json.inspect(
     render_with_locals(pug, locals),
     content="<div data-value=\"6\"></div>",
   )
@@ -61,7 +61,7 @@ test "js expression - string method chaining" {
     #|p #{name.toLowerCase().trim()}
   let locals = Locals::new()
   locals.set("name", "  HELLO  ")
-  inspect(render_with_locals(pug, locals), content="<p>hello</p>")
+  @json.inspect(render_with_locals(pug, locals), content="<p>hello</p>")
 }
 
 ///|
@@ -71,7 +71,7 @@ test "js expression - ternary with method" {
   let locals = Locals::new()
   locals.set("active", "true")
   locals.set("msg", "Hello")
-  inspect(render_with_locals(pug, locals), content="<p>HELLO</p>")
+  @json.inspect(render_with_locals(pug, locals), content="<p>HELLO</p>")
 }
 
 ///|
@@ -79,7 +79,7 @@ test "js expression - var assignment simple" {
   let pug =
     #|- var msg = "hello"
     #|p #{msg}
-  inspect(render(pug), content="<p>hello</p>")
+  @json.inspect(render(pug), content="<p>hello</p>")
 }
 
 ///|
@@ -87,5 +87,5 @@ test "js expression - var assignment and method" {
   let pug =
     #|- var msg = "not my inside voice"
     #|p This is #{msg.toUpperCase()}
-  inspect(render(pug), content="<p>This is NOT MY INSIDE VOICE</p>")
+  @json.inspect(render(pug), content="<p>This is NOT MY INSIDE VOICE</p>")
 }

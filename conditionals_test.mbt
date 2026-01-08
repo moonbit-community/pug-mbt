@@ -23,8 +23,32 @@ test "if true condition" {
     #|  p Visible
   let locals = Locals::new()
   locals.set("show", "true")
-  let html = render_with_locals(pug, locals)
-  inspect(html, content="<p>Visible</p>")
+  inspect(@pug.render_with_locals(pug, locals), content="<p>Visible</p>")
+  @json.inspect(@pug.parse(pug), content={
+    "nodes": [
+      [
+        "Conditional",
+        {
+          "condition": "show",
+          "if_true": [
+            [
+              "Element",
+              {
+                "tag": "p",
+                "id": "",
+                "classes": [],
+                "attributes": [],
+                "children": [["Text", "Visible"]],
+                "self_closing": false,
+              },
+            ],
+          ],
+          "if_false": [],
+          "is_unless": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
@@ -34,8 +58,32 @@ test "if false condition" {
     #|  p Visible
   let locals = Locals::new()
   locals.set("show", "false")
-  let html = render_with_locals(pug, locals)
-  inspect(html, content="")
+  inspect(@pug.render_with_locals(pug, locals), content="")
+  @json.inspect(@pug.parse(pug), content={
+    "nodes": [
+      [
+        "Conditional",
+        {
+          "condition": "show",
+          "if_true": [
+            [
+              "Element",
+              {
+                "tag": "p",
+                "id": "",
+                "classes": [],
+                "attributes": [],
+                "children": [["Text", "Visible"]],
+                "self_closing": false,
+              },
+            ],
+          ],
+          "if_false": [],
+          "is_unless": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
@@ -47,8 +95,44 @@ test "if-else" {
     #|  p Please log in
   let locals = Locals::new()
   locals.set("loggedIn", "false")
-  let html = render_with_locals(pug, locals)
-  inspect(html, content="<p>Please log in</p>")
+  inspect(@pug.render_with_locals(pug, locals), content="<p>Please log in</p>")
+  @json.inspect(@pug.parse(pug), content={
+    "nodes": [
+      [
+        "Conditional",
+        {
+          "condition": "loggedIn",
+          "if_true": [
+            [
+              "Element",
+              {
+                "tag": "p",
+                "id": "",
+                "classes": [],
+                "attributes": [],
+                "children": [["Text", "Welcome back"]],
+                "self_closing": false,
+              },
+            ],
+          ],
+          "if_false": [
+            [
+              "Element",
+              {
+                "tag": "p",
+                "id": "",
+                "classes": [],
+                "attributes": [],
+                "children": [["Text", "Please log in"]],
+                "self_closing": false,
+              },
+            ],
+          ],
+          "is_unless": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
@@ -62,8 +146,68 @@ test "if-else if-else" {
     #|  p.red Inactive
   let locals = Locals::new()
   locals.set("status", "pending")
-  let html = render_with_locals(pug, locals)
-  inspect(html, content="<p class=\"yellow\">Pending</p>")
+  inspect(
+    @pug.render_with_locals(pug, locals),
+    content="<p class=\"yellow\">Pending</p>",
+  )
+  @json.inspect(@pug.parse(pug), content={
+    "nodes": [
+      [
+        "Conditional",
+        {
+          "condition": "status == \"active\"",
+          "if_true": [
+            [
+              "Element",
+              {
+                "tag": "p",
+                "id": "",
+                "classes": ["green"],
+                "attributes": [],
+                "children": [["Text", "Active"]],
+                "self_closing": false,
+              },
+            ],
+          ],
+          "if_false": [],
+          "is_unless": false,
+        },
+      ],
+      [
+        "Conditional",
+        {
+          "condition": "status == \"pending\"",
+          "if_true": [
+            [
+              "Element",
+              {
+                "tag": "p",
+                "id": "",
+                "classes": ["yellow"],
+                "attributes": [],
+                "children": [["Text", "Pending"]],
+                "self_closing": false,
+              },
+            ],
+          ],
+          "if_false": [
+            [
+              "Element",
+              {
+                "tag": "p",
+                "id": "",
+                "classes": ["red"],
+                "attributes": [],
+                "children": [["Text", "Inactive"]],
+                "self_closing": false,
+              },
+            ],
+          ],
+          "is_unless": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
@@ -73,8 +217,32 @@ test "unless true" {
     #|  p Shown
   let locals = Locals::new()
   locals.set("hidden", "true")
-  let html = render_with_locals(pug, locals)
-  inspect(html, content="")
+  inspect(@pug.render_with_locals(pug, locals), content="")
+  @json.inspect(@pug.parse(pug), content={
+    "nodes": [
+      [
+        "Conditional",
+        {
+          "condition": "hidden",
+          "if_true": [
+            [
+              "Element",
+              {
+                "tag": "p",
+                "id": "",
+                "classes": [],
+                "attributes": [],
+                "children": [["Text", "Shown"]],
+                "self_closing": false,
+              },
+            ],
+          ],
+          "if_false": [],
+          "is_unless": true,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
@@ -84,8 +252,32 @@ test "unless false" {
     #|  p Shown
   let locals = Locals::new()
   locals.set("hidden", "false")
-  let html = render_with_locals(pug, locals)
-  inspect(html, content="<p>Shown</p>")
+  inspect(@pug.render_with_locals(pug, locals), content="<p>Shown</p>")
+  @json.inspect(@pug.parse(pug), content={
+    "nodes": [
+      [
+        "Conditional",
+        {
+          "condition": "hidden",
+          "if_true": [
+            [
+              "Element",
+              {
+                "tag": "p",
+                "id": "",
+                "classes": [],
+                "attributes": [],
+                "children": [["Text", "Shown"]],
+                "self_closing": false,
+              },
+            ],
+          ],
+          "if_false": [],
+          "is_unless": true,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
@@ -99,8 +291,54 @@ test "nested conditionals" {
   let locals = Locals::new()
   locals.set("user", "true")
   locals.set("user.admin", "true")
-  let html = render_with_locals(pug, locals)
-  inspect(html, content="<p>Admin Panel</p>")
+  inspect(@pug.render_with_locals(pug, locals), content="<p>Admin Panel</p>")
+  @json.inspect(@pug.parse(pug), content={
+    "nodes": [
+      [
+        "Conditional",
+        {
+          "condition": "user",
+          "if_true": [
+            [
+              "Conditional",
+              {
+                "condition": "user.admin",
+                "if_true": [
+                  [
+                    "Element",
+                    {
+                      "tag": "p",
+                      "id": "",
+                      "classes": [],
+                      "attributes": [],
+                      "children": [["Text", "Admin Panel"]],
+                      "self_closing": false,
+                    },
+                  ],
+                ],
+                "if_false": [
+                  [
+                    "Element",
+                    {
+                      "tag": "p",
+                      "id": "",
+                      "classes": [],
+                      "attributes": [],
+                      "children": [["Text", "User Dashboard"]],
+                      "self_closing": false,
+                    },
+                  ],
+                ],
+                "is_unless": false,
+              },
+            ],
+          ],
+          "if_false": [],
+          "is_unless": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
@@ -112,6 +350,42 @@ test "conditional with variable check" {
     #|  p Hello Guest
   let locals = Locals::new()
   locals.set("name", "Alice")
-  let html = render_with_locals(pug, locals)
-  inspect(html, content="<p>Hello Alice</p>")
+  inspect(@pug.render_with_locals(pug, locals), content="<p>Hello Alice</p>")
+  @json.inspect(@pug.parse(pug), content={
+    "nodes": [
+      [
+        "Conditional",
+        {
+          "condition": "name",
+          "if_true": [
+            [
+              "Element",
+              {
+                "tag": "p",
+                "id": "",
+                "classes": [],
+                "attributes": [],
+                "children": [["Text", "Hello "], ["Interpolation", "name"]],
+                "self_closing": false,
+              },
+            ],
+          ],
+          "if_false": [
+            [
+              "Element",
+              {
+                "tag": "p",
+                "id": "",
+                "classes": [],
+                "attributes": [],
+                "children": [["Text", "Hello Guest"]],
+                "self_closing": false,
+              },
+            ],
+          ],
+          "is_unless": false,
+        },
+      ],
+    ],
+  })
 }

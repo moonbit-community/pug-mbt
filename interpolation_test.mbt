@@ -20,19 +20,50 @@
 test "escaped interpolation" {
   let locals = Locals::new()
   locals.set("content", "<script>alert('xss')</script>")
-  let html = render_with_locals("p #{content}", locals)
   inspect(
-    html,
+    @pug.render_with_locals("p #{content}", locals),
     content="<p>&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;</p>",
   )
+  @json.inspect(@pug.parse("p #{content}"), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "p",
+          "id": "",
+          "classes": [],
+          "attributes": [],
+          "children": [["Interpolation", "content"]],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
 test "unescaped interpolation with !{}" {
   let locals = Locals::new()
   locals.set("content", "<strong>bold</strong>")
-  let html = render_with_locals("p !{content}", locals)
-  inspect(html, content="<p><strong>bold</strong></p>")
+  inspect(
+    @pug.render_with_locals("p !{content}", locals),
+    content="<p><strong>bold</strong></p>",
+  )
+  @json.inspect(@pug.parse("p !{content}"), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "p",
+          "id": "",
+          "classes": [],
+          "attributes": [],
+          "children": [["UnescapedInterpolation", "content"]],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
@@ -40,26 +71,153 @@ test "mixed escaped and unescaped" {
   let locals = Locals::new()
   locals.set("safe", "Hello")
   locals.set("html", "<em>World</em>")
-  let html = render_with_locals("p #{safe} !{html}", locals)
-  inspect(html, content="<p>Hello <em>World</em></p>")
+  inspect(
+    @pug.render_with_locals("p #{safe} !{html}", locals),
+    content="<p>Hello <em>World</em></p>",
+  )
+  @json.inspect(@pug.parse("p #{safe} !{html}"), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "p",
+          "id": "",
+          "classes": [],
+          "attributes": [],
+          "children": [
+            ["Interpolation", "safe"],
+            ["Text", " "],
+            ["UnescapedInterpolation", "html"],
+          ],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
 test "tag interpolation with #[]" {
-  let html = render("p This is #[strong important] text")
-  inspect(html, content="<p>This is <strong>important</strong> text</p>")
+  inspect(
+    @pug.render("p This is #[strong important] text"),
+    content="<p>This is <strong>important</strong> text</p>",
+  )
+  @json.inspect(@pug.parse("p This is #[strong important] text"), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "p",
+          "id": "",
+          "classes": [],
+          "attributes": [],
+          "children": [
+            ["Text", "This is "],
+            [
+              "Element",
+              {
+                "tag": "strong",
+                "id": "",
+                "classes": [],
+                "attributes": [],
+                "children": [["Text", "important"]],
+                "self_closing": false,
+              },
+            ],
+            ["Text", " text"],
+          ],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
 test "tag interpolation with attributes" {
-  let html = render("p Click #[a(href=\"/\") here] to continue")
-  inspect(html, content="<p>Click <a href=\"/\">here</a> to continue</p>")
+  inspect(
+    @pug.render("p Click #[a(href=\"/\") here] to continue"),
+    content="<p>Click <a href=\"/\">here</a> to continue</p>",
+  )
+  @json.inspect(@pug.parse("p Click #[a(href=\"/\") here] to continue"), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "p",
+          "id": "",
+          "classes": [],
+          "attributes": [],
+          "children": [
+            ["Text", "Click "],
+            [
+              "Element",
+              {
+                "tag": "a",
+                "id": "",
+                "classes": [],
+                "attributes": [
+                  { "name": "href", "value": "/", "unescaped": false },
+                ],
+                "children": [["Text", "here"]],
+                "self_closing": false,
+              },
+            ],
+            ["Text", " to continue"],
+          ],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
 test "nested tag interpolation" {
-  let html = render("p #[strong #[em nested]] content")
-  inspect(html, content="<p><strong><em>nested</em></strong> content</p>")
+  inspect(
+    @pug.render("p #[strong #[em nested]] content"),
+    content="<p><strong><em>nested</em></strong> content</p>",
+  )
+  @json.inspect(@pug.parse("p #[strong #[em nested]] content"), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "p",
+          "id": "",
+          "classes": [],
+          "attributes": [],
+          "children": [
+            [
+              "Element",
+              {
+                "tag": "strong",
+                "id": "",
+                "classes": [],
+                "attributes": [],
+                "children": [
+                  [
+                    "Element",
+                    {
+                      "tag": "em",
+                      "id": "",
+                      "classes": [],
+                      "attributes": [],
+                      "children": [["Text", "nested"]],
+                      "self_closing": false,
+                    },
+                  ],
+                ],
+                "self_closing": false,
+              },
+            ],
+            ["Text", " content"],
+          ],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
@@ -67,8 +225,28 @@ test "interpolation in attribute" {
   let locals = Locals::new()
   locals.set("id", "main")
   locals.set("cls", "active")
-  let html = render_with_locals("div(id=\"#{id}\", class=\"#{cls}\")", locals)
-  inspect(html, content="<div id=\"main\" class=\"active\"></div>")
+  inspect(
+    @pug.render_with_locals("div(id=\"#{id}\", class=\"#{cls}\")", locals),
+    content="<div id=\"main\" class=\"active\"></div>",
+  )
+  @json.inspect(@pug.parse("div(id=\"#{id}\", class=\"#{cls}\")"), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "div",
+          "id": "",
+          "classes": [],
+          "attributes": [
+            { "name": "id", "value": "#{id}", "unescaped": false },
+            { "name": "class", "value": "#{cls}", "unescaped": false },
+          ],
+          "children": [],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
@@ -76,14 +254,56 @@ test "interpolation with method call syntax" {
   // In our implementation, we just look up the variable name
   let locals = Locals::new()
   locals.set("name", "moonbit")
-  let html = render_with_locals("p Welcome to #{name}!", locals)
-  inspect(html, content="<p>Welcome to moonbit!</p>")
+  inspect(
+    @pug.render_with_locals("p Welcome to #{name}!", locals),
+    content="<p>Welcome to moonbit!</p>",
+  )
+  @json.inspect(@pug.parse("p Welcome to #{name}!"), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "p",
+          "id": "",
+          "classes": [],
+          "attributes": [],
+          "children": [
+            ["Text", "Welcome to "],
+            ["Interpolation", "name"],
+            ["Text", "!"],
+          ],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
 test "whitespace around interpolation" {
   let locals = Locals::new()
   locals.set("name", "World")
-  let html = render_with_locals("p Hello #{name} !", locals)
-  inspect(html, content="<p>Hello World !</p>")
+  inspect(
+    @pug.render_with_locals("p Hello #{name} !", locals),
+    content="<p>Hello World !</p>",
+  )
+  @json.inspect(@pug.parse("p Hello #{name} !"), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "p",
+          "id": "",
+          "classes": [],
+          "attributes": [],
+          "children": [
+            ["Text", "Hello "],
+            ["Interpolation", "name"],
+            ["Text", " !"],
+          ],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }

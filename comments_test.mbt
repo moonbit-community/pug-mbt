@@ -18,14 +18,19 @@
 
 ///|
 test "buffered comment" {
-  let html = render("// This appears in HTML")
-  inspect(html, content="<!--This appears in HTML-->")
+  inspect(
+    @pug.render("// This appears in HTML"),
+    content="<!--This appears in HTML-->",
+  )
+  @json.inspect(@pug.parse("// This appears in HTML"), content={
+    "nodes": [["Comment", { "text": "This appears in HTML", "render": true }]],
+  })
 }
 
 ///|
 test "unbuffered comment" {
-  let html = render("//- This is hidden")
-  inspect(html, content="")
+  inspect(@pug.render("//- This is hidden"), content="")
+  @json.inspect(@pug.parse("//- This is hidden"), content={ "nodes": [] })
 }
 
 ///|
@@ -33,8 +38,23 @@ test "comment with content below" {
   let pug =
     #|// visible comment
     #|p Hello
-  let html = render(pug)
-  inspect(html, content="<!--visible comment--><p>Hello</p>")
+  inspect(@pug.render(pug), content="<!--visible comment--><p>Hello</p>")
+  @json.inspect(@pug.parse(pug), content={
+    "nodes": [
+      ["Comment", { "text": "visible comment", "render": true }],
+      [
+        "Element",
+        {
+          "tag": "p",
+          "id": "",
+          "classes": [],
+          "attributes": [],
+          "children": [["Text", "Hello"]],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
@@ -42,8 +62,22 @@ test "unbuffered comment with content below" {
   let pug =
     #|//- hidden comment
     #|p Hello
-  let html = render(pug)
-  inspect(html, content="<p>Hello</p>")
+  inspect(@pug.render(pug), content="<p>Hello</p>")
+  @json.inspect(@pug.parse(pug), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "p",
+          "id": "",
+          "classes": [],
+          "attributes": [],
+          "children": [["Text", "Hello"]],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
@@ -52,8 +86,12 @@ test "block comment buffered" {
     #|//
     #|  This is a
     #|  multi-line comment
-  let html = render(pug)
-  inspect(html, content="<!--This is a\nmulti-line comment-->")
+  inspect(@pug.render(pug), content="<!--This is a\nmulti-line comment-->")
+  @json.inspect(@pug.parse(pug), content={
+    "nodes": [
+      ["Comment", { "text": "This is a\nmulti-line comment", "render": true }],
+    ],
+  })
 }
 
 ///|
@@ -63,8 +101,22 @@ test "block comment unbuffered" {
     #|  This comment
     #|  is hidden
     #|p Visible
-  let html = render(pug)
-  inspect(html, content="<p>Visible</p>")
+  inspect(@pug.render(pug), content="<p>Visible</p>")
+  @json.inspect(@pug.parse(pug), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "p",
+          "id": "",
+          "classes": [],
+          "attributes": [],
+          "children": [["Text", "Visible"]],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
@@ -73,6 +125,36 @@ test "comment in nested structure" {
     #|div
     #|  // comment inside
     #|  p Content
-  let html = render(pug)
-  inspect(html, content="<div><!--comment inside--><p>Content</p></div>")
+  inspect(
+    @pug.render(pug),
+    content="<div><!--comment inside--><p>Content</p></div>",
+  )
+  @json.inspect(@pug.parse(pug), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "div",
+          "id": "",
+          "classes": [],
+          "attributes": [],
+          "children": [
+            ["Comment", { "text": "comment inside", "render": true }],
+            [
+              "Element",
+              {
+                "tag": "p",
+                "id": "",
+                "classes": [],
+                "attributes": [],
+                "children": [["Text", "Content"]],
+                "self_closing": false,
+              },
+            ],
+          ],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }

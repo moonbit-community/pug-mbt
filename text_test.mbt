@@ -18,11 +18,25 @@
 
 ///|
 test "inline text with html entities" {
-  let html = render("p This is plain old <em>text</em> content.")
   inspect(
-    html,
+    @pug.render("p This is plain old <em>text</em> content."),
     content="<p>This is plain old &lt;em&gt;text&lt;/em&gt; content.</p>",
   )
+  @json.inspect(@pug.parse("p This is plain old <em>text</em> content."), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "p",
+          "id": "",
+          "classes": [],
+          "attributes": [],
+          "children": [["Text", "This is plain old <em>text</em> content."]],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
@@ -30,8 +44,22 @@ test "piped text single line" {
   let pug =
     #|p
     #|  | This is piped text
-  let html = render(pug)
-  inspect(html, content="<p>This is piped text</p>")
+  inspect(@pug.render(pug), content="<p>This is piped text</p>")
+  @json.inspect(@pug.parse(pug), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "p",
+          "id": "",
+          "classes": [],
+          "attributes": [],
+          "children": [["Text", "This is piped text"]],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
@@ -41,8 +69,26 @@ test "piped text multiple lines" {
     #|  | Line one
     #|  | Line two
     #|  | Line three
-  let html = render(pug)
-  inspect(html, content="<p>Line oneLine twoLine three</p>")
+  inspect(@pug.render(pug), content="<p>Line oneLine twoLine three</p>")
+  @json.inspect(@pug.parse(pug), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "p",
+          "id": "",
+          "classes": [],
+          "attributes": [],
+          "children": [
+            ["Text", "Line one"],
+            ["Text", "Line two"],
+            ["Text", "Line three"],
+          ],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
@@ -52,8 +98,41 @@ test "piped text with inline tag" {
     #|  | Click
     #|  a(href="#") here
     #|  | to continue
-  let html = render(pug)
-  inspect(html, content="<p>Click<a href=\"#\">here</a>to continue</p>")
+  inspect(
+    @pug.render(pug),
+    content="<p>Click<a href=\"#\">here</a>to continue</p>",
+  )
+  @json.inspect(@pug.parse(pug), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "p",
+          "id": "",
+          "classes": [],
+          "attributes": [],
+          "children": [
+            ["Text", "Click"],
+            [
+              "Element",
+              {
+                "tag": "a",
+                "id": "",
+                "classes": [],
+                "attributes": [
+                  { "name": "href", "value": "#", "unescaped": false },
+                ],
+                "children": [["Text", "here"]],
+                "self_closing": false,
+              },
+            ],
+            ["Text", "to continue"],
+          ],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
@@ -62,11 +141,25 @@ test "block text with dot" {
     #|script.
     #|  console.log('hello');
     #|  console.log('world');
-  let html = render(pug)
   inspect(
-    html,
+    @pug.render(pug),
     content="<script>console.log('hello');\nconsole.log('world');</script>",
   )
+  @json.inspect(@pug.parse(pug), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "script",
+          "id": "",
+          "classes": [],
+          "attributes": [],
+          "children": [["Text", "console.log('hello');\nconsole.log('world');"]],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
@@ -76,8 +169,22 @@ test "style block text" {
     #|  body {
     #|    color: red;
     #|  }
-  let html = render(pug)
-  inspect(html, content="<style>body {\n  color: red;\n}</style>")
+  inspect(@pug.render(pug), content="<style>body {\n  color: red;\n}</style>")
+  @json.inspect(@pug.parse(pug), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "style",
+          "id": "",
+          "classes": [],
+          "attributes": [],
+          "children": [["Text", "body {\n  color: red;\n}"]],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
@@ -87,6 +194,23 @@ test "pre block preserves whitespace" {
     #|  function hello() {
     #|    return 'world';
     #|  }
-  let html = render(pug)
-  inspect(html, content="<pre>function hello() {\n  return 'world';\n}</pre>")
+  inspect(
+    @pug.render(pug),
+    content="<pre>function hello() {\n  return 'world';\n}</pre>",
+  )
+  @json.inspect(@pug.parse(pug), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "pre",
+          "id": "",
+          "classes": [],
+          "attributes": [],
+          "children": [["Text", "function hello() {\n  return 'world';\n}"]],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }

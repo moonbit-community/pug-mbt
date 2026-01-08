@@ -18,32 +18,188 @@
 
 ///|
 test "simple block expansion" {
-  let html = render("a: img")
-  inspect(html, content="<a><img></a>")
+  inspect(@pug.render("a: img"), content="<a><img></a>")
+  @json.inspect(@pug.parse("a: img"), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "a",
+          "id": "",
+          "classes": [],
+          "attributes": [],
+          "children": [
+            [
+              "Element",
+              {
+                "tag": "img",
+                "id": "",
+                "classes": [],
+                "attributes": [],
+                "children": [],
+                "self_closing": false,
+              },
+            ],
+          ],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
 test "block expansion with text" {
-  let html = render("p: strong Bold text")
-  inspect(html, content="<p><strong>Bold text</strong></p>")
+  inspect(
+    @pug.render("p: strong Bold text"),
+    content="<p><strong>Bold text</strong></p>",
+  )
+  @json.inspect(@pug.parse("p: strong Bold text"), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "p",
+          "id": "",
+          "classes": [],
+          "attributes": [],
+          "children": [
+            [
+              "Element",
+              {
+                "tag": "strong",
+                "id": "",
+                "classes": [],
+                "attributes": [],
+                "children": [["Text", "Bold text"]],
+                "self_closing": false,
+              },
+            ],
+          ],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
 test "block expansion with attributes" {
-  let html = render("a(href=\"/\"): img(src=\"logo.png\")")
-  inspect(html, content="<a href=\"/\"><img src=\"logo.png\"></a>")
+  inspect(
+    @pug.render("a(href=\"/\"): img(src=\"logo.png\")"),
+    content="<a href=\"/\"><img src=\"logo.png\"></a>",
+  )
+  @json.inspect(@pug.parse("a(href=\"/\"): img(src=\"logo.png\")"), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "a",
+          "id": "",
+          "classes": [],
+          "attributes": [{ "name": "href", "value": "/", "unescaped": false }],
+          "children": [
+            [
+              "Element",
+              {
+                "tag": "img",
+                "id": "",
+                "classes": [],
+                "attributes": [
+                  { "name": "src", "value": "logo.png", "unescaped": false },
+                ],
+                "children": [],
+                "self_closing": false,
+              },
+            ],
+          ],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
 test "chained block expansion" {
-  let html = render("div: p: span Hello")
-  inspect(html, content="<div><p><span>Hello</span></p></div>")
+  inspect(
+    @pug.render("div: p: span Hello"),
+    content="<div><p><span>Hello</span></p></div>",
+  )
+  @json.inspect(@pug.parse("div: p: span Hello"), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "div",
+          "id": "",
+          "classes": [],
+          "attributes": [],
+          "children": [
+            [
+              "Element",
+              {
+                "tag": "p",
+                "id": "",
+                "classes": [],
+                "attributes": [],
+                "children": [
+                  [
+                    "Element",
+                    {
+                      "tag": "span",
+                      "id": "",
+                      "classes": [],
+                      "attributes": [],
+                      "children": [["Text", "Hello"]],
+                      "self_closing": false,
+                    },
+                  ],
+                ],
+                "self_closing": false,
+              },
+            ],
+          ],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
 test "block expansion with class" {
-  let html = render("ul.menu: li.item First")
-  inspect(html, content="<ul class=\"menu\"><li class=\"item\">First</li></ul>")
+  inspect(
+    @pug.render("ul.menu: li.item First"),
+    content="<ul class=\"menu\"><li class=\"item\">First</li></ul>",
+  )
+  @json.inspect(@pug.parse("ul.menu: li.item First"), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "ul",
+          "id": "",
+          "classes": ["menu"],
+          "attributes": [],
+          "children": [
+            [
+              "Element",
+              {
+                "tag": "li",
+                "id": "",
+                "classes": ["item"],
+                "attributes": [],
+                "children": [["Text", "First"]],
+                "self_closing": false,
+              },
+            ],
+          ],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
@@ -52,6 +208,58 @@ test "block expansion followed by sibling" {
     #|div
     #|  p: span Inline
     #|  p Normal
-  let html = render(pug)
-  inspect(html, content="<div><p><span>Inline</span></p><p>Normal</p></div>")
+  inspect(
+    @pug.render(pug),
+    content="<div><p><span>Inline</span></p><p>Normal</p></div>",
+  )
+  @json.inspect(@pug.parse(pug), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "div",
+          "id": "",
+          "classes": [],
+          "attributes": [],
+          "children": [
+            [
+              "Element",
+              {
+                "tag": "p",
+                "id": "",
+                "classes": [],
+                "attributes": [],
+                "children": [
+                  [
+                    "Element",
+                    {
+                      "tag": "span",
+                      "id": "",
+                      "classes": [],
+                      "attributes": [],
+                      "children": [["Text", "Inline"]],
+                      "self_closing": false,
+                    },
+                  ],
+                ],
+                "self_closing": false,
+              },
+            ],
+            [
+              "Element",
+              {
+                "tag": "p",
+                "id": "",
+                "classes": [],
+                "attributes": [],
+                "children": [["Text", "Normal"]],
+                "self_closing": false,
+              },
+            ],
+          ],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }

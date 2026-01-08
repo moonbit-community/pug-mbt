@@ -18,8 +18,31 @@
 
 ///|
 test "attribute with single quotes" {
-  let html = render("a(href='https://example.com') Link")
-  inspect(html, content="<a href=\"https://example.com\">Link</a>")
+  inspect(
+    @pug.render("a(href='https://example.com') Link"),
+    content="<a href=\"https://example.com\">Link</a>",
+  )
+  @json.inspect(@pug.parse("a(href='https://example.com') Link"), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "a",
+          "id": "",
+          "classes": [],
+          "attributes": [
+            {
+              "name": "href",
+              "value": "https://example.com",
+              "unescaped": false,
+            },
+          ],
+          "children": [["Text", "Link"]],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
@@ -30,40 +53,162 @@ test "multi-line attributes" {
     #|  name="agreement"
     #|  checked
     #|)
-  let html = render(pug)
-  inspect(html, content="<input type=\"checkbox\" name=\"agreement\" checked>")
+  inspect(
+    @pug.render(pug),
+    content="<input type=\"checkbox\" name=\"agreement\" checked>",
+  )
+  @json.inspect(@pug.parse(pug), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "input",
+          "id": "",
+          "classes": [],
+          "attributes": [
+            { "name": "type", "value": "checkbox", "unescaped": false },
+            { "name": "name", "value": "agreement", "unescaped": false },
+            { "name": "checked", "unescaped": false },
+          ],
+          "children": [],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
 test "boolean attribute" {
-  let html = render("input(type=\"checkbox\", checked)")
-  inspect(html, content="<input type=\"checkbox\" checked>")
+  inspect(
+    @pug.render("input(type=\"checkbox\", checked)"),
+    content="<input type=\"checkbox\" checked>",
+  )
+  @json.inspect(@pug.parse("input(type=\"checkbox\", checked)"), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "input",
+          "id": "",
+          "classes": [],
+          "attributes": [
+            { "name": "type", "value": "checkbox", "unescaped": false },
+            { "name": "checked", "unescaped": false },
+          ],
+          "children": [],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
 test "boolean attribute standalone" {
-  let html = render("input(disabled)")
-  inspect(html, content="<input disabled>")
+  inspect(@pug.render("input(disabled)"), content="<input disabled>")
+  @json.inspect(@pug.parse("input(disabled)"), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "input",
+          "id": "",
+          "classes": [],
+          "attributes": [{ "name": "disabled", "unescaped": false }],
+          "children": [],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
 test "multiple boolean attributes" {
-  let html = render("input(type=\"text\", required, readonly)")
-  inspect(html, content="<input type=\"text\" required readonly>")
+  inspect(
+    @pug.render("input(type=\"text\", required, readonly)"),
+    content="<input type=\"text\" required readonly>",
+  )
+  @json.inspect(@pug.parse("input(type=\"text\", required, readonly)"), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "input",
+          "id": "",
+          "classes": [],
+          "attributes": [
+            { "name": "type", "value": "text", "unescaped": false },
+            { "name": "required", "unescaped": false },
+            { "name": "readonly", "unescaped": false },
+          ],
+          "children": [],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
 test "unescaped attribute with !=" {
-  let html = render("div(data-content!=\"<strong>bold</strong>\")")
-  inspect(html, content="<div data-content=\"<strong>bold</strong>\"></div>")
+  inspect(
+    @pug.render("div(data-content!=\"<strong>bold</strong>\")"),
+    content="<div data-content=\"<strong>bold</strong>\"></div>",
+  )
+  @json.inspect(@pug.parse("div(data-content!=\"<strong>bold</strong>\")"), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "div",
+          "id": "",
+          "classes": [],
+          "attributes": [
+            {
+              "name": "data-content",
+              "value": "<strong>bold</strong>",
+              "unescaped": true,
+            },
+          ],
+          "children": [],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
 test "escaped attribute value" {
-  let html = render("div(data-content=\"<script>alert('xss')</script>\")")
   inspect(
-    html,
+    @pug.render("div(data-content=\"<script>alert('xss')</script>\")"),
     content="<div data-content=\"&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;\"></div>",
+  )
+  @json.inspect(
+    @pug.parse("div(data-content=\"<script>alert('xss')</script>\")"),
+    content={
+      "nodes": [
+        [
+          "Element",
+          {
+            "tag": "div",
+            "id": "",
+            "classes": [],
+            "attributes": [
+              {
+                "name": "data-content",
+                "value": "<script>alert('xss')</script>",
+                "unescaped": false,
+              },
+            ],
+            "children": [],
+            "self_closing": false,
+          },
+        ],
+      ],
+    },
   )
 }
 
@@ -71,33 +216,129 @@ test "escaped attribute value" {
 test "attribute with interpolation" {
   let locals = Locals::new()
   locals.set("url", "https://moonbit.io")
-  let html = render_with_locals("a(href=\"#{url}\") MoonBit", locals)
-  inspect(html, content="<a href=\"https://moonbit.io\">MoonBit</a>")
+  inspect(
+    @pug.render_with_locals("a(href=\"#{url}\") MoonBit", locals),
+    content="<a href=\"https://moonbit.io\">MoonBit</a>",
+  )
+  @json.inspect(@pug.parse("a(href=\"#{url}\") MoonBit"), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "a",
+          "id": "",
+          "classes": [],
+          "attributes": [
+            { "name": "href", "value": "#{url}", "unescaped": false },
+          ],
+          "children": [["Text", "MoonBit"]],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
 test "class and id combined with attributes" {
-  let html = render("button#submit.btn.primary(type=\"submit\") Submit")
   inspect(
-    html,
+    @pug.render("button#submit.btn.primary(type=\"submit\") Submit"),
     content="<button id=\"submit\" class=\"btn primary\" type=\"submit\">Submit</button>",
+  )
+  @json.inspect(
+    @pug.parse("button#submit.btn.primary(type=\"submit\") Submit"),
+    content={
+      "nodes": [
+        [
+          "Element",
+          {
+            "tag": "button",
+            "id": "submit",
+            "classes": ["btn", "primary"],
+            "attributes": [
+              { "name": "type", "value": "submit", "unescaped": false },
+            ],
+            "children": [["Text", "Submit"]],
+            "self_closing": false,
+          },
+        ],
+      ],
+    },
   )
 }
 
 ///|
 test "empty attribute value" {
-  let html = render("div(data-empty=\"\")")
-  inspect(html, content="<div data-empty=\"\"></div>")
+  inspect(
+    @pug.render("div(data-empty=\"\")"),
+    content="<div data-empty=\"\"></div>",
+  )
+  @json.inspect(@pug.parse("div(data-empty=\"\")"), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "div",
+          "id": "",
+          "classes": [],
+          "attributes": [
+            { "name": "data-empty", "value": "", "unescaped": false },
+          ],
+          "children": [],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
 test "attribute with spaces in value" {
-  let html = render("div(title=\"Hello World\")")
-  inspect(html, content="<div title=\"Hello World\"></div>")
+  inspect(
+    @pug.render("div(title=\"Hello World\")"),
+    content="<div title=\"Hello World\"></div>",
+  )
+  @json.inspect(@pug.parse("div(title=\"Hello World\")"), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "div",
+          "id": "",
+          "classes": [],
+          "attributes": [
+            { "name": "title", "value": "Hello World", "unescaped": false },
+          ],
+          "children": [],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
 test "data attributes" {
-  let html = render("div(data-id=\"123\", data-name=\"test\")")
-  inspect(html, content="<div data-id=\"123\" data-name=\"test\"></div>")
+  inspect(
+    @pug.render("div(data-id=\"123\", data-name=\"test\")"),
+    content="<div data-id=\"123\" data-name=\"test\"></div>",
+  )
+  @json.inspect(@pug.parse("div(data-id=\"123\", data-name=\"test\")"), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "div",
+          "id": "",
+          "classes": [],
+          "attributes": [
+            { "name": "data-id", "value": "123", "unescaped": false },
+            { "name": "data-name", "value": "test", "unescaped": false },
+          ],
+          "children": [],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }

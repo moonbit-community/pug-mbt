@@ -46,6 +46,7 @@ pub struct Attribute {
 }
 pub impl Eq for Attribute
 pub impl Show for Attribute
+pub impl ToJson for Attribute
 
 pub struct CompiledTemplate {
   doc : Document
@@ -64,6 +65,7 @@ pub fn Document::render_with_locals(Self, Locals, options~ : RenderOptions) -> S
 pub fn Document::render_with_registry(Self, Locals, TemplateRegistry, options~ : RenderOptions) -> String
 pub fn Document::to_html(Self) -> String
 pub fn Document::to_pretty_html(Self) -> String
+pub impl ToJson for Document
 
 type Lexer
 pub fn Lexer::new(String) -> Self
@@ -105,6 +107,7 @@ pub enum Node {
 }
 pub impl Eq for Node
 pub impl Show for Node
+pub impl ToJson for Node
 
 type Parser
 pub fn Parser::new(Array[Token]) -> Self

@@ -18,7 +18,7 @@ pub struct Attribute {
   name : String
   value : String? // None for boolean attributes, Some("") for empty values
   unescaped : Bool // True for != syntax, false for = syntax
-} derive(Show, Eq)
+} derive(Show, Eq, ToJson)
 
 ///|
 /// Locals map for template interpolation
@@ -193,13 +193,13 @@ pub enum Node {
   Extends(path~ : String)
   /// Filter statement (:filter_name content)
   Filter(name~ : String, content~ : String)
-} derive(Show, Eq)
+} derive(Show, Eq, ToJson)
 
 ///|
 /// A Pug document is a list of nodes
 pub struct Document {
   nodes : Array[Node]
-}
+} derive(ToJson)
 
 ///|
 pub fn Document::new() -> Document {

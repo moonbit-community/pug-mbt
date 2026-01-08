@@ -23,8 +23,58 @@ test "simple block definition" {
     #|  body
     #|    block content
     #|      p Default content
-  let html = render(pug)
-  inspect(html, content="<html><body><p>Default content</p></body></html>")
+  inspect(
+    @pug.render(pug),
+    content="<html><body><p>Default content</p></body></html>",
+  )
+  @json.inspect(@pug.parse(pug), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "html",
+          "id": "",
+          "classes": [],
+          "attributes": [],
+          "children": [
+            [
+              "Element",
+              {
+                "tag": "body",
+                "id": "",
+                "classes": [],
+                "attributes": [],
+                "children": [
+                  [
+                    "NamedBlock",
+                    {
+                      "name": "content",
+                      "body": [
+                        [
+                          "Element",
+                          {
+                            "tag": "p",
+                            "id": "",
+                            "classes": [],
+                            "attributes": [],
+                            "children": [["Text", "Default content"]],
+                            "self_closing": false,
+                          },
+                        ],
+                      ],
+                      "mode": "replace",
+                    },
+                  ],
+                ],
+                "self_closing": false,
+              },
+            ],
+          ],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
@@ -45,8 +95,8 @@ test "block with extends" {
   // Test that we can parse both templates
   let layout_doc = parse(layout)
   let child_doc = parse(child)
-  inspect(layout_doc.nodes.length() > 0, content="true")
-  inspect(child_doc.nodes.length() > 0, content="true")
+  @json.inspect(layout_doc.nodes.length() > 0, content=true)
+  @json.inspect(child_doc.nodes.length() > 0, content=true)
 }
 
 ///|
@@ -60,7 +110,7 @@ test "append block" {
     #|  script(src="/app.js")
   let html = render(pug)
   // append adds to the end of the block
-  inspect(
+  @json.inspect(
     html,
     content="<html><head><script src=\"/jquery.js\"></script><script src=\"/app.js\"></script></head></html>",
   )
@@ -77,7 +127,7 @@ test "prepend block" {
     #|  script(src="/jquery.js")
   let html = render(pug)
   // prepend adds to the beginning of the block
-  inspect(
+  @json.inspect(
     html,
     content="<html><head><script src=\"/jquery.js\"></script><script src=\"/app.js\"></script></head></html>",
   )
@@ -102,7 +152,7 @@ test "extends with registry - basic" {
     #|block content
     #|  p Child content
   let html = render_with_registry(child, Locals::new(), registry)
-  inspect(
+  @json.inspect(
     html,
     content="<html><head><title>Default Title</title></head><body><p>Child content</p></body></html>",
   )
@@ -122,7 +172,7 @@ test "extends with registry - append block" {
     #|append scripts
     #|  script(src="/app.js")
   let html = render_with_registry(child, Locals::new(), registry)
-  inspect(
+  @json.inspect(
     html,
     content="<html><head><script src=\"/jquery.js\"></script><script src=\"/app.js\"></script></head></html>",
   )
@@ -142,7 +192,7 @@ test "extends with registry - prepend block" {
     #|prepend scripts
     #|  script(src="/jquery.js")
   let html = render_with_registry(child, Locals::new(), registry)
-  inspect(
+  @json.inspect(
     html,
     content="<html><head><script src=\"/jquery.js\"></script><script src=\"/app.js\"></script></head></html>",
   )

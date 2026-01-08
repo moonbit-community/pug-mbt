@@ -14,91 +14,303 @@
 
 ///|
 test "simple tag" {
-  let html = render("div")
-  inspect(html, content="<div></div>")
+  inspect(@pug.render("div"), content="<div></div>")
+  @json.inspect(@pug.parse("div"), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "div",
+          "id": "",
+          "classes": [],
+          "attributes": [],
+          "children": [],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
 test "tag with text" {
-  let html = render("p Hello World")
-  inspect(html, content="<p>Hello World</p>")
+  inspect(@pug.render("p Hello World"), content="<p>Hello World</p>")
+  @json.inspect(@pug.parse("p Hello World"), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "p",
+          "id": "",
+          "classes": [],
+          "attributes": [],
+          "children": [["Text", "Hello World"]],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
 test "tag with id" {
-  let html = render("div#main")
-  inspect(html, content="<div id=\"main\"></div>")
+  inspect(@pug.render("div#main"), content="<div id=\"main\"></div>")
+  @json.inspect(@pug.parse("div#main"), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "div",
+          "id": "main",
+          "classes": [],
+          "attributes": [],
+          "children": [],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
 test "tag with class" {
-  let html = render("div.container")
-  inspect(html, content="<div class=\"container\"></div>")
+  inspect(
+    @pug.render("div.container"),
+    content="<div class=\"container\"></div>",
+  )
+  @json.inspect(@pug.parse("div.container"), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "div",
+          "id": "",
+          "classes": ["container"],
+          "attributes": [],
+          "children": [],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
 test "tag with multiple classes" {
-  let html = render("div.foo.bar.baz")
-  inspect(html, content="<div class=\"foo bar baz\"></div>")
+  inspect(
+    @pug.render("div.foo.bar.baz"),
+    content="<div class=\"foo bar baz\"></div>",
+  )
+  @json.inspect(@pug.parse("div.foo.bar.baz"), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "div",
+          "id": "",
+          "classes": ["foo", "bar", "baz"],
+          "attributes": [],
+          "children": [],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
 test "tag with id and classes" {
-  let html = render("div#main.container.active")
-  inspect(html, content="<div id=\"main\" class=\"container active\"></div>")
+  inspect(
+    @pug.render("div#main.container.active"),
+    content="<div id=\"main\" class=\"container active\"></div>",
+  )
+  @json.inspect(@pug.parse("div#main.container.active"), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "div",
+          "id": "main",
+          "classes": ["container", "active"],
+          "attributes": [],
+          "children": [],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
 test "implicit div with id" {
-  let html = render("#main")
-  inspect(html, content="<div id=\"main\"></div>")
+  inspect(@pug.render("#main"), content="<div id=\"main\"></div>")
+  @json.inspect(@pug.parse("#main"), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "div",
+          "id": "main",
+          "classes": [],
+          "attributes": [],
+          "children": [],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
 test "implicit div with class" {
-  let html = render(".container")
-  inspect(html, content="<div class=\"container\"></div>")
+  inspect(@pug.render(".container"), content="<div class=\"container\"></div>")
+  @json.inspect(@pug.parse(".container"), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "div",
+          "id": "",
+          "classes": ["container"],
+          "attributes": [],
+          "children": [],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
 test "tag with attributes" {
-  let html = render("a(href=\"https://example.com\") Click me")
-  inspect(html, content="<a href=\"https://example.com\">Click me</a>")
+  inspect(
+    @pug.render("a(href=\"https://example.com\") Click me"),
+    content="<a href=\"https://example.com\">Click me</a>",
+  )
+  @json.inspect(@pug.parse("a(href=\"https://example.com\") Click me"), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "a",
+          "id": "",
+          "classes": [],
+          "attributes": [
+            {
+              "name": "href",
+              "value": "https://example.com",
+              "unescaped": false,
+            },
+          ],
+          "children": [["Text", "Click me"]],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
 test "tag with multiple attributes" {
-  let html = render(
-    "input(type=\"text\", name=\"username\", placeholder=\"Enter name\")",
-  )
   inspect(
-    html,
+    @pug.render(
+      "input(type=\"text\", name=\"username\", placeholder=\"Enter name\")",
+    ),
     content="<input type=\"text\" name=\"username\" placeholder=\"Enter name\">",
+  )
+  @json.inspect(
+    @pug.parse(
+      "input(type=\"text\", name=\"username\", placeholder=\"Enter name\")",
+    ),
+    content={
+      "nodes": [
+        [
+          "Element",
+          {
+            "tag": "input",
+            "id": "",
+            "classes": [],
+            "attributes": [
+              { "name": "type", "value": "text", "unescaped": false },
+              { "name": "name", "value": "username", "unescaped": false },
+              {
+                "name": "placeholder",
+                "value": "Enter name",
+                "unescaped": false,
+              },
+            ],
+            "children": [],
+            "self_closing": false,
+          },
+        ],
+      ],
+    },
   )
 }
 
 ///|
 test "void element" {
-  let html = render("br")
-  inspect(html, content="<br>")
+  inspect(@pug.render("br"), content="<br>")
+  @json.inspect(@pug.parse("br"), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "br",
+          "id": "",
+          "classes": [],
+          "attributes": [],
+          "children": [],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
 test "img element" {
-  let html = render("img(src=\"photo.jpg\", alt=\"A photo\")")
-  inspect(html, content="<img src=\"photo.jpg\" alt=\"A photo\">")
+  inspect(
+    @pug.render("img(src=\"photo.jpg\", alt=\"A photo\")"),
+    content="<img src=\"photo.jpg\" alt=\"A photo\">",
+  )
+  @json.inspect(@pug.parse("img(src=\"photo.jpg\", alt=\"A photo\")"), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "img",
+          "id": "",
+          "classes": [],
+          "attributes": [
+            { "name": "src", "value": "photo.jpg", "unescaped": false },
+            { "name": "alt", "value": "A photo", "unescaped": false },
+          ],
+          "children": [],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
 test "doctype" {
-  let html = render("doctype html")
-  inspect(html, content="<!DOCTYPE html>")
+  inspect(@pug.render("doctype html"), content="<!DOCTYPE html>")
+  @json.inspect(@pug.parse("doctype html"), content={
+    "nodes": [["Doctype", "html"]],
+  })
 }
 
 ///|
 test "comment" {
-  let html = render("// This is a comment")
-  inspect(html, content="<!--This is a comment-->")
+  inspect(
+    @pug.render("// This is a comment"),
+    content="<!--This is a comment-->",
+  )
+  @json.inspect(@pug.parse("// This is a comment"), content={
+    "nodes": [["Comment", { "text": "This is a comment", "render": true }]],
+  })
 }
 
 ///|
@@ -107,8 +319,45 @@ test "nested elements" {
     #|div
     #|  p Hello
     #|  p World
-  let html = render(pug)
-  inspect(html, content="<div><p>Hello</p><p>World</p></div>")
+  inspect(@pug.render(pug), content="<div><p>Hello</p><p>World</p></div>")
+  @json.inspect(@pug.parse(pug), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "div",
+          "id": "",
+          "classes": [],
+          "attributes": [],
+          "children": [
+            [
+              "Element",
+              {
+                "tag": "p",
+                "id": "",
+                "classes": [],
+                "attributes": [],
+                "children": [["Text", "Hello"]],
+                "self_closing": false,
+              },
+            ],
+            [
+              "Element",
+              {
+                "tag": "p",
+                "id": "",
+                "classes": [],
+                "attributes": [],
+                "children": [["Text", "World"]],
+                "self_closing": false,
+              },
+            ],
+          ],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
@@ -119,11 +368,72 @@ test "deeply nested elements" {
     #|    title My Page
     #|  body
     #|    h1 Welcome
-  let html = render(pug)
   inspect(
-    html,
+    @pug.render(pug),
     content="<html><head><title>My Page</title></head><body><h1>Welcome</h1></body></html>",
   )
+  @json.inspect(@pug.parse(pug), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "html",
+          "id": "",
+          "classes": [],
+          "attributes": [],
+          "children": [
+            [
+              "Element",
+              {
+                "tag": "head",
+                "id": "",
+                "classes": [],
+                "attributes": [],
+                "children": [
+                  [
+                    "Element",
+                    {
+                      "tag": "title",
+                      "id": "",
+                      "classes": [],
+                      "attributes": [],
+                      "children": [["Text", "My Page"]],
+                      "self_closing": false,
+                    },
+                  ],
+                ],
+                "self_closing": false,
+              },
+            ],
+            [
+              "Element",
+              {
+                "tag": "body",
+                "id": "",
+                "classes": [],
+                "attributes": [],
+                "children": [
+                  [
+                    "Element",
+                    {
+                      "tag": "h1",
+                      "id": "",
+                      "classes": [],
+                      "attributes": [],
+                      "children": [["Text", "Welcome"]],
+                      "self_closing": false,
+                    },
+                  ],
+                ],
+                "self_closing": false,
+              },
+            ],
+          ],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
@@ -131,13 +441,39 @@ test "pretty print" {
   let pug =
     #|div
     #|  p Hello
-  let html = render_pretty(pug)
   let expected =
     #|<div>
     #|  <p>Hello</p>
     #|</div>
     #|
-  inspect(html, content=expected)
+  inspect(@pug.render_pretty(pug), content=expected)
+  @json.inspect(@pug.parse(pug), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "div",
+          "id": "",
+          "classes": [],
+          "attributes": [],
+          "children": [
+            [
+              "Element",
+              {
+                "tag": "p",
+                "id": "",
+                "classes": [],
+                "attributes": [],
+                "children": [["Text", "Hello"]],
+                "self_closing": false,
+              },
+            ],
+          ],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
@@ -151,19 +487,130 @@ test "full html page" {
     #|  body
     #|    h1#title.heading Welcome
     #|    p.intro This is a paragraph.
-  let html = render(pug)
   inspect(
-    html,
+    @pug.render(pug),
     content="<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>Example</title></head><body><h1 id=\"title\" class=\"heading\">Welcome</h1><p class=\"intro\">This is a paragraph.</p></body></html>",
   )
+  @json.inspect(@pug.parse(pug), content={
+    "nodes": [
+      ["Doctype", "html"],
+      [
+        "Element",
+        {
+          "tag": "html",
+          "id": "",
+          "classes": [],
+          "attributes": [],
+          "children": [
+            [
+              "Element",
+              {
+                "tag": "head",
+                "id": "",
+                "classes": [],
+                "attributes": [],
+                "children": [
+                  [
+                    "Element",
+                    {
+                      "tag": "meta",
+                      "id": "",
+                      "classes": [],
+                      "attributes": [
+                        {
+                          "name": "charset",
+                          "value": "utf-8",
+                          "unescaped": false,
+                        },
+                      ],
+                      "children": [],
+                      "self_closing": false,
+                    },
+                  ],
+                  [
+                    "Element",
+                    {
+                      "tag": "title",
+                      "id": "",
+                      "classes": [],
+                      "attributes": [],
+                      "children": [["Text", "Example"]],
+                      "self_closing": false,
+                    },
+                  ],
+                ],
+                "self_closing": false,
+              },
+            ],
+            [
+              "Element",
+              {
+                "tag": "body",
+                "id": "",
+                "classes": [],
+                "attributes": [],
+                "children": [
+                  [
+                    "Element",
+                    {
+                      "tag": "h1",
+                      "id": "title",
+                      "classes": ["heading"],
+                      "attributes": [],
+                      "children": [["Text", "Welcome"]],
+                      "self_closing": false,
+                    },
+                  ],
+                  [
+                    "Element",
+                    {
+                      "tag": "p",
+                      "id": "",
+                      "classes": ["intro"],
+                      "attributes": [],
+                      "children": [["Text", "This is a paragraph."]],
+                      "self_closing": false,
+                    },
+                  ],
+                ],
+                "self_closing": false,
+              },
+            ],
+          ],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
 test "interpolation" {
   let locals = Locals::new()
   locals.set("name", "World")
-  let html = render_with_locals("p Hello #{name}!", locals)
-  inspect(html, content="<p>Hello World!</p>")
+  inspect(
+    @pug.render_with_locals("p Hello #{name}!", locals),
+    content="<p>Hello World!</p>",
+  )
+  @json.inspect(@pug.parse("p Hello #{name}!"), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "p",
+          "id": "",
+          "classes": [],
+          "attributes": [],
+          "children": [
+            ["Text", "Hello "],
+            ["Interpolation", "name"],
+            ["Text", "!"],
+          ],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
@@ -171,15 +618,57 @@ test "multiple interpolations" {
   let locals = Locals::new()
   locals.set("first", "John")
   locals.set("last", "Doe")
-  let html = render_with_locals("p #{first} #{last}", locals)
-  inspect(html, content="<p>John Doe</p>")
+  inspect(
+    @pug.render_with_locals("p #{first} #{last}", locals),
+    content="<p>John Doe</p>",
+  )
+  @json.inspect(@pug.parse("p #{first} #{last}"), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "p",
+          "id": "",
+          "classes": [],
+          "attributes": [],
+          "children": [
+            ["Interpolation", "first"],
+            ["Text", " "],
+            ["Interpolation", "last"],
+          ],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
 test "missing interpolation variable" {
   let locals = Locals::new()
-  let html = render_with_locals("p Hello #{name}!", locals)
-  inspect(html, content="<p>Hello !</p>")
+  inspect(
+    @pug.render_with_locals("p Hello #{name}!", locals),
+    content="<p>Hello !</p>",
+  )
+  @json.inspect(@pug.parse("p Hello #{name}!"), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "p",
+          "id": "",
+          "classes": [],
+          "attributes": [],
+          "children": [
+            ["Text", "Hello "],
+            ["Interpolation", "name"],
+            ["Text", "!"],
+          ],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
@@ -187,12 +676,29 @@ test "compile and render" {
   let template = compile("p Hello #{name}!")
   let locals1 = Locals::new()
   locals1.set("name", "Alice")
-  let html1 = template.render(locals1)
-  inspect(html1, content="<p>Hello Alice!</p>")
+  inspect(template.render(locals1), content="<p>Hello Alice!</p>")
   let locals2 = Locals::new()
   locals2.set("name", "Bob")
-  let html2 = template.render(locals2)
-  inspect(html2, content="<p>Hello Bob!</p>")
+  inspect(template.render(locals2), content="<p>Hello Bob!</p>")
+  @json.inspect(@pug.parse("p Hello #{name}!"), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "p",
+          "id": "",
+          "classes": [],
+          "attributes": [],
+          "children": [
+            ["Text", "Hello "],
+            ["Interpolation", "name"],
+            ["Text", "!"],
+          ],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
@@ -204,6 +710,49 @@ test "interpolation in nested elements" {
   let locals = Locals::new()
   locals.set("name", "User")
   locals.set("place", "MoonBit")
-  let html = render_with_locals(pug, locals)
-  inspect(html, content="<div><p>Hello User</p><p>Welcome to MoonBit</p></div>")
+  inspect(
+    @pug.render_with_locals(pug, locals),
+    content="<div><p>Hello User</p><p>Welcome to MoonBit</p></div>",
+  )
+  @json.inspect(@pug.parse(pug), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "div",
+          "id": "",
+          "classes": [],
+          "attributes": [],
+          "children": [
+            [
+              "Element",
+              {
+                "tag": "p",
+                "id": "",
+                "classes": [],
+                "attributes": [],
+                "children": [["Text", "Hello "], ["Interpolation", "name"]],
+                "self_closing": false,
+              },
+            ],
+            [
+              "Element",
+              {
+                "tag": "p",
+                "id": "",
+                "classes": [],
+                "attributes": [],
+                "children": [
+                  ["Text", "Welcome to "],
+                  ["Interpolation", "place"],
+                ],
+                "self_closing": false,
+              },
+            ],
+          ],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }

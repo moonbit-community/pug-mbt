@@ -21,8 +21,23 @@ test "unbuffered code variable" {
   let pug =
     #|- var greeting = "Hello"
     #|p= greeting
-  let html = render(pug)
-  inspect(html, content="<p>Hello</p>")
+  inspect(@pug.render(pug), content="<p>Hello</p>")
+  @json.inspect(@pug.parse(pug), content={
+    "nodes": [
+      ["VarAssign", { "name": "", "value": "var greeting = \"Hello\"" }],
+      [
+        "Element",
+        {
+          "tag": "p",
+          "id": "",
+          "classes": [],
+          "attributes": [],
+          "children": [["Interpolation", "greeting"]],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
@@ -31,8 +46,22 @@ test "buffered code output" {
     #|p= message
   let locals = Locals::new()
   locals.set("message", "Hello World")
-  let html = render_with_locals(pug, locals)
-  inspect(html, content="<p>Hello World</p>")
+  inspect(@pug.render_with_locals(pug, locals), content="<p>Hello World</p>")
+  @json.inspect(@pug.parse(pug), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "p",
+          "id": "",
+          "classes": [],
+          "attributes": [],
+          "children": [["Interpolation", "message"]],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
@@ -41,11 +70,25 @@ test "buffered code escapes html" {
     #|p= content
   let locals = Locals::new()
   locals.set("content", "<script>alert('xss')</script>")
-  let html = render_with_locals(pug, locals)
   inspect(
-    html,
+    @pug.render_with_locals(pug, locals),
     content="<p>&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;</p>",
   )
+  @json.inspect(@pug.parse(pug), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "p",
+          "id": "",
+          "classes": [],
+          "attributes": [],
+          "children": [["Interpolation", "content"]],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
@@ -54,8 +97,25 @@ test "unescaped buffered code" {
     #|p!= content
   let locals = Locals::new()
   locals.set("content", "<strong>bold</strong>")
-  let html = render_with_locals(pug, locals)
-  inspect(html, content="<p><strong>bold</strong></p>")
+  inspect(
+    @pug.render_with_locals(pug, locals),
+    content="<p><strong>bold</strong></p>",
+  )
+  @json.inspect(@pug.parse(pug), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "p",
+          "id": "",
+          "classes": [],
+          "attributes": [],
+          "children": [["UnescapedInterpolation", "content"]],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
@@ -64,8 +124,25 @@ test "inline buffered code" {
     #|p The answer is #{answer}
   let locals = Locals::new()
   locals.set("answer", "42")
-  let html = render_with_locals(pug, locals)
-  inspect(html, content="<p>The answer is 42</p>")
+  inspect(
+    @pug.render_with_locals(pug, locals),
+    content="<p>The answer is 42</p>",
+  )
+  @json.inspect(@pug.parse(pug), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "p",
+          "id": "",
+          "classes": [],
+          "attributes": [],
+          "children": [["Text", "The answer is "], ["Interpolation", "answer"]],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
@@ -74,8 +151,33 @@ test "code with conditional" {
     #|- var show = true
     #|if show
     #|  p Visible
-  let html = render(pug)
-  inspect(html, content="<p>Visible</p>")
+  inspect(@pug.render(pug), content="<p>Visible</p>")
+  @json.inspect(@pug.parse(pug), content={
+    "nodes": [
+      ["VarAssign", { "name": "", "value": "var show = true" }],
+      [
+        "Conditional",
+        {
+          "condition": "show",
+          "if_true": [
+            [
+              "Element",
+              {
+                "tag": "p",
+                "id": "",
+                "classes": [],
+                "attributes": [],
+                "children": [["Text", "Visible"]],
+                "self_closing": false,
+              },
+            ],
+          ],
+          "if_false": [],
+          "is_unless": false,
+        },
+      ],
+    ],
+  })
 }
 
 ///|
@@ -86,6 +188,6 @@ test "code defining list" {
     #|ul
     #|  each item in list
     #|    li= item
-  let html = render(pug)
-  inspect(html, content="<ul><li>a</li><li>b</li><li>c</li></ul>")
+  inspect(@pug.render(pug), content="<ul><li>a</li><li>b</li><li>c</li></ul>")
+  @json.inspect(@pug.parse(pug))
 }
