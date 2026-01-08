@@ -1842,3 +1842,165 @@ pub fn render_file_with_locals(
     options=RenderOptions::default(),
   )
 }
+
+///|
+/// Resolve includes in a single node, returning resolved nodes
+fn resolve_node_includes(
+  node : Node,
+  registry : TemplateRegistry,
+  visited : Map[String, Bool],
+) -> Array[Node] {
+  match node {
+    Include(path~) =>
+      // Load and parse included template
+      match registry.get(path) {
+        Some(source) =>
+          // Check for circular includes
+          if visited.contains(path) {
+            [Comment(text="Circular include: " + path, render=true)]
+          } else {
+            visited[path] = true
+            let inc_doc = parse(source)
+            // Recursively resolve includes in included document
+            let resolved : Array[Node] = []
+            for inc_node in inc_doc.iter() {
+              for r in resolve_node_includes(inc_node, registry, visited) {
+                resolved.push(r)
+              }
+            }
+            resolved
+          }
+        None => [Comment(text="Include not found: " + path, render=true)]
+      }
+    Element(tag~, id~, classes~, attributes~, children~, self_closing~) => {
+      // Recursively resolve children
+      let resolved_children : Array[Node] = []
+      for child in children {
+        for r in resolve_node_includes(child, registry, visited) {
+          resolved_children.push(r)
+        }
+      }
+      [
+        Element(
+          tag~,
+          id~,
+          classes~,
+          attributes~,
+          children=resolved_children,
+          self_closing~,
+        ),
+      ]
+    }
+    Conditional(condition~, if_true~, if_false~, is_unless~) => {
+      let resolved_true : Array[Node] = []
+      for child in if_true {
+        for r in resolve_node_includes(child, registry, visited) {
+          resolved_true.push(r)
+        }
+      }
+      let resolved_false : Array[Node] = []
+      for child in if_false {
+        for r in resolve_node_includes(child, registry, visited) {
+          resolved_false.push(r)
+        }
+      }
+      [
+        Conditional(
+          condition~,
+          if_true=resolved_true,
+          if_false=resolved_false,
+          is_unless~,
+        ),
+      ]
+    }
+    Each(item_var~, index_var~, collection~, body~, else_body~) => {
+      let resolved_body : Array[Node] = []
+      for child in body {
+        for r in resolve_node_includes(child, registry, visited) {
+          resolved_body.push(r)
+        }
+      }
+      let resolved_else : Array[Node] = []
+      for child in else_body {
+        for r in resolve_node_includes(child, registry, visited) {
+          resolved_else.push(r)
+        }
+      }
+      [
+        Each(
+          item_var~,
+          index_var~,
+          collection~,
+          body=resolved_body,
+          else_body=resolved_else,
+        ),
+      ]
+    }
+    NamedBlock(name~, body~, mode~) => {
+      let resolved_body : Array[Node] = []
+      for child in body {
+        for r in resolve_node_includes(child, registry, visited) {
+          resolved_body.push(r)
+        }
+      }
+      [NamedBlock(name~, body=resolved_body, mode~)]
+    }
+    MixinDef(name~, params~, body~) => {
+      let resolved_body : Array[Node] = []
+      for child in body {
+        for r in resolve_node_includes(child, registry, visited) {
+          resolved_body.push(r)
+        }
+      }
+      [MixinDef(name~, params~, body=resolved_body)]
+    }
+    Case(expr~, cases~, default~) => {
+      let resolved_cases : Array[(String, Array[Node])] = []
+      for pair in cases {
+        let (value, case_body) = pair
+        let resolved_body : Array[Node] = []
+        for child in case_body {
+          for r in resolve_node_includes(child, registry, visited) {
+            resolved_body.push(r)
+          }
+        }
+        resolved_cases.push((value, resolved_body))
+      }
+      let resolved_default : Array[Node] = []
+      for child in default {
+        for r in resolve_node_includes(child, registry, visited) {
+          resolved_default.push(r)
+        }
+      }
+      [Case(expr~, cases=resolved_cases, default=resolved_default)]
+    }
+    While(condition~, body~) => {
+      let resolved_body : Array[Node] = []
+      for child in body {
+        for r in resolve_node_includes(child, registry, visited) {
+          resolved_body.push(r)
+        }
+      }
+      [While(condition~, body=resolved_body)]
+    }
+    _ => [node] // Other nodes pass through unchanged
+  }
+}
+
+///|
+/// Parse Pug and resolve all includes using registry
+/// Returns a Document with Include nodes replaced by actual content
+pub fn parse_with_registry(
+  input : String,
+  registry : TemplateRegistry,
+) -> Document {
+  let doc = parse(input)
+  let visited : Map[String, Bool] = {}
+  let resolved_nodes : Array[Node] = []
+  for node in doc.iter() {
+    for r in resolve_node_includes(node, registry, visited) {
+      resolved_nodes.push(r)
+    }
+  }
+  { nodes: resolved_nodes }
+}

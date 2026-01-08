@@ -45,7 +45,7 @@ test "include with registry" {
     @pug.render_with_registry(pug, Locals::new(), registry),
     content="<html><header><h1>Site Title</h1></header><body><p>Content</p></body><footer><p>Copyright 2024</p></footer></html>",
   )
-  @json.inspect(@pug.parse(pug), content={
+  @json.inspect(@pug.parse_with_registry(pug, registry), content={
     "nodes": [
       [
         "Element",
@@ -55,7 +55,29 @@ test "include with registry" {
           "classes": [],
           "attributes": [],
           "children": [
-            ["Include", { "path": "header.pug" }],
+            [
+              "Element",
+              {
+                "tag": "header",
+                "id": "",
+                "classes": [],
+                "attributes": [],
+                "children": [
+                  [
+                    "Element",
+                    {
+                      "tag": "h1",
+                      "id": "",
+                      "classes": [],
+                      "attributes": [],
+                      "children": [["Text", "Site Title"]],
+                      "self_closing": false,
+                    },
+                  ],
+                ],
+                "self_closing": false,
+              },
+            ],
             [
               "Element",
               {
@@ -79,7 +101,29 @@ test "include with registry" {
                 "self_closing": false,
               },
             ],
-            ["Include", { "path": "footer.pug" }],
+            [
+              "Element",
+              {
+                "tag": "footer",
+                "id": "",
+                "classes": [],
+                "attributes": [],
+                "children": [
+                  [
+                    "Element",
+                    {
+                      "tag": "p",
+                      "id": "",
+                      "classes": [],
+                      "attributes": [],
+                      "children": [["Text", "Copyright 2024"]],
+                      "self_closing": false,
+                    },
+                  ],
+                ],
+                "self_closing": false,
+              },
+            ],
           ],
           "self_closing": false,
         },
@@ -98,7 +142,7 @@ test "include not found" {
     @pug.render_with_registry(pug, Locals::new(), registry),
     content="<html><!-- Include not found: missing.pug --></html>",
   )
-  @json.inspect(@pug.parse(pug), content={
+  @json.inspect(@pug.parse_with_registry(pug, registry), content={
     "nodes": [
       [
         "Element",
@@ -107,7 +151,12 @@ test "include not found" {
           "id": "",
           "classes": [],
           "attributes": [],
-          "children": [["Include", { "path": "missing.pug" }]],
+          "children": [
+            [
+              "Comment",
+              { "text": "Include not found: missing.pug", "render": true },
+            ],
+          ],
           "self_closing": false,
         },
       ],
@@ -128,7 +177,7 @@ test "include with locals" {
     @pug.render_with_registry(pug, locals, registry),
     content="<div><p>Hello World</p></div>",
   )
-  @json.inspect(@pug.parse(pug), content={
+  @json.inspect(@pug.parse_with_registry(pug, registry), content={
     "nodes": [
       [
         "Element",
@@ -137,7 +186,19 @@ test "include with locals" {
           "id": "",
           "classes": [],
           "attributes": [],
-          "children": [["Include", { "path": "greeting.pug" }]],
+          "children": [
+            [
+              "Element",
+              {
+                "tag": "p",
+                "id": "",
+                "classes": [],
+                "attributes": [],
+                "children": [["Text", "Hello "], ["Interpolation", "name"]],
+                "self_closing": false,
+              },
+            ],
+          ],
           "self_closing": false,
         },
       ],
