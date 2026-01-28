@@ -1,9 +1,9 @@
 // Generated using `moon info`, DON'T EDIT IT
 package "Milky2018/pug"
 
-import(
-  "moonbitlang/x/fs"
-)
+import {
+  "moonbitlang/x/fs",
+}
 
 // Values
 pub fn apply_filter(String, String) -> String
@@ -21,6 +21,8 @@ pub fn get_doctype(String) -> String
 pub fn locals_to_json(Locals) -> String
 
 pub fn parse(String) -> Document
+
+pub fn parse_with_registry(String, TemplateRegistry) -> Document
 
 pub fn render(String) -> String
 

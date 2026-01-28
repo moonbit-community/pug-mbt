@@ -157,27 +157,30 @@ test "unescaped attribute with !=" {
     @pug.render("div(data-content!=\"<strong>bold</strong>\")"),
     content="<div data-content=\"<strong>bold</strong>\"></div>",
   )
-  @json.json_inspect(@pug.parse("div(data-content!=\"<strong>bold</strong>\")"), content={
-    "nodes": [
-      [
-        "Element",
-        {
-          "tag": "div",
-          "id": "",
-          "classes": [],
-          "attributes": [
-            {
-              "name": "data-content",
-              "value": "<strong>bold</strong>",
-              "unescaped": true,
-            },
-          ],
-          "children": [],
-          "self_closing": false,
-        },
+  @json.json_inspect(
+    @pug.parse("div(data-content!=\"<strong>bold</strong>\")"),
+    content={
+      "nodes": [
+        [
+          "Element",
+          {
+            "tag": "div",
+            "id": "",
+            "classes": [],
+            "attributes": [
+              {
+                "name": "data-content",
+                "value": "<strong>bold</strong>",
+                "unescaped": true,
+              },
+            ],
+            "children": [],
+            "self_closing": false,
+          },
+        ],
       ],
-    ],
-  })
+    },
+  )
 }
 
 ///|

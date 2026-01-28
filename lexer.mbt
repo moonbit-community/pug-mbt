@@ -549,13 +549,15 @@ fn Lexer::parse_text_with_interpolations(
   tokens : Array[Token],
 ) -> Unit {
   let buf = StringBuilder::new()
+  let mut buf_non_empty = false
   while self.peek() is Some(c) && c != '\n' {
     // Check for tag interpolation #[...]
     if c == '#' && self.peek_ahead(1) is Some('[') {
       // Flush accumulated text
-      if buf.to_string().length() > 0 {
+      if buf_non_empty {
         tokens.push(Text(buf.to_string()))
         buf.reset()
+        buf_non_empty = false
       }
       let _ = self.advance() // consume #
       let _ = self.advance() // consume [
@@ -564,9 +566,10 @@ fn Lexer::parse_text_with_interpolations(
     } else if c == '#' && self.peek_ahead(1) is Some('{') {
       // Check for escaped interpolation #{...}
       // Flush accumulated text
-      if buf.to_string().length() > 0 {
+      if buf_non_empty {
         tokens.push(Text(buf.to_string()))
         buf.reset()
+        buf_non_empty = false
       }
       let _ = self.advance() // consume #
       let _ = self.advance() // consume {
@@ -580,9 +583,10 @@ fn Lexer::parse_text_with_interpolations(
     } else if c == '!' && self.peek_ahead(1) is Some('{') {
       // Check for unescaped interpolation !{...}
       // Flush accumulated text
-      if buf.to_string().length() > 0 {
+      if buf_non_empty {
         tokens.push(Text(buf.to_string()))
         buf.reset()
+        buf_non_empty = false
       }
       let _ = self.advance() // consume !
       let _ = self.advance() // consume {
@@ -595,12 +599,13 @@ fn Lexer::parse_text_with_interpolations(
       tokens.push(UnescapedInterpolation(expr))
     } else {
       buf.write_char(c)
+      buf_non_empty = true
       let _ = self.advance()
 
     }
   }
   // Flush remaining text
-  if buf.to_string().length() > 0 {
+  if buf_non_empty {
     tokens.push(Text(buf.to_string()))
   }
 }
@@ -620,6 +625,7 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
   // Read indentation
   let indent = self.read_indent()
   tokens.push(Indent(indent))
+  let mut has_element_prefix = false
 
   // Check for end of input or empty line after indent
   if self.peek() is None {
@@ -1097,6 +1103,7 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
     Some(c) if is_alpha(c) => {
       let tag = self.take_while(is_tag_char)
       tokens.push(Tag(tag))
+      has_element_prefix = true
     }
     _ => ()
   }
@@ -1108,6 +1115,7 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
         let _ = self.advance()
         let id = self.take_while(is_id_class_char)
         tokens.push(Id(id))
+        has_element_prefix = true
       }
       Some('.') =>
         // Check if this is a block text marker (. followed by newline or EOF)
@@ -1117,6 +1125,7 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
             let _ = self.advance()
             let cls = self.take_while(is_id_class_char)
             tokens.push(Class(cls))
+            has_element_prefix = true
           }
         }
       _ => break
@@ -1125,6 +1134,7 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
 
   // Read attributes in parentheses
   if self.peek() is Some('(') {
+    has_element_prefix = true
     let _ = self.advance()
     tokens.push(LParen)
     while self.peek() is Some(c) && c != ')' {
@@ -1301,9 +1311,24 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
   }
 
   // Check for self-closing marker /
-  if self.peek() is Some('/') {
-    let _ = self.advance()
-    tokens.push(SelfClose)
+  if has_element_prefix && self.peek() is Some('/') {
+    // Only treat "/" as a self-closing marker when it is a trailing suffix
+    // (optionally followed by whitespace) before newline/EOF.
+    let slash_pos = self.pos
+    let _ = self.advance() // consume '/'
+    self.skip_while(fn(c) { c == ' ' || c == '\t' })
+    if self.peek() is Some('\n') || self.peek() is None {
+      tokens.push(SelfClose)
+    } else {
+      // Not a suffix; rewind and let the fallback treat it as plain text.
+      self.pos = slash_pos
+    }
+  }
+
+  // Fallback: if we still have non-newline characters, treat the rest of the
+  // line as plain text so the tokenizer always makes progress (e.g. "{" alone).
+  if self.peek() is Some(c) && c != '\n' {
+    self.parse_text_with_interpolations(tokens)
   }
 
   // Handle newline
