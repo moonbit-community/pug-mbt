@@ -43,3 +43,38 @@ test "lexer terminates on a set of punctuation-only inputs" {
 
   }
 }
+
+///|
+test "lexer handles tab-indented filter blocks without looping" {
+  // Regression test: filter parsing used to rewind by "indent width" instead of
+  // "indent character count", which could move the cursor backwards past the
+  // line boundary when tabs were involved.
+  let input = "\t:markdown\n\t\tp indented\n\tp outside\n"
+  inspect(
+    @pug.tokenize(input),
+    content=(
+      #|[Indent(2), Filter("markdown", "p indented"), Indent(2), Tag("p"), Text("outside"), Newline, EOF]
+    ),
+  )
+}
+
+///|
+test "parse p(7) does not hang" {
+  // Pug-compatible behavior: `p(7)` is an attribute shorthand and should parse
+  // as an attribute named "7" (and must never hang).
+  @json.json_inspect(@pug.parse("p(7)"), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "p",
+          "id": "",
+          "classes": [],
+          "attributes": [{ "name": "7", "unescaped": false }],
+          "children": [],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
+}

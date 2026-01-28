@@ -18,7 +18,7 @@
 
 ///|
 test "simple block expansion" {
-  inspect(@pug.render("a: img"), content="<a><img></a>")
+  inspect(@pug.render("a: img"), content="<a><img/></a>")
   @json.json_inspect(@pug.parse("a: img"), content={
     "nodes": [
       [
@@ -87,7 +87,7 @@ test "block expansion with text" {
 test "block expansion with attributes" {
   inspect(
     @pug.render("a(href=\"/\"): img(src=\"logo.png\")"),
-    content="<a href=\"/\"><img src=\"logo.png\"></a>",
+    content="<a href=\"/\"><img src=\"logo.png\"/></a>",
   )
   @json.json_inspect(@pug.parse("a(href=\"/\"): img(src=\"logo.png\")"), content={
     "nodes": [

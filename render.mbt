@@ -307,6 +307,37 @@ fn needs_js_eval(expr : String) -> Bool {
 }
 
 ///|
+/// Evaluate an attribute value to a raw string (no HTML escaping).
+fn eval_attr_value_raw(v : String, locals : Locals) -> String {
+  if v.contains("#{") {
+    interpolate_string(v, locals, false)
+  } else if needs_js_eval(v) {
+    eval_js_expression(v, locals)
+  } else if v.contains("\"") || v.contains("'") {
+    // Quoted literal - strip quotes if they wrap the whole string.
+    let chars = v.to_array()
+    if chars.length() >= 2 &&
+      (
+        (chars[0] == '"' && chars[chars.length() - 1] == '"') ||
+        (chars[0] == '\'' && chars[chars.length() - 1] == '\'')
+      ) {
+      let inner = StringBuilder::new()
+      for i in 1..<(chars.length() - 1) {
+        inner.write_char(chars[i])
+      }
+      inner.to_string()
+    } else {
+      v
+    }
+  } else {
+    match locals.get(v) {
+      Some(local_val) => local_val
+      None => v
+    }
+  }
+}
+
+///|
 /// Process string with interpolations, replacing #{name} with values from locals
 fn interpolate_string(s : String, locals : Locals, escape : Bool) -> String {
   let chars = s.to_array()
@@ -749,18 +780,39 @@ fn render_node_with_mixins(
       buf.write_string(indent)
       buf.write_string("<")
       buf.write_string(tag)
-
-      // Add id attribute
-      if id.length() > 0 {
-        buf.write_string(" id=\"")
-        buf.write_string(escape_html(id))
-        buf.write_string("\"")
+      if is_void_element(tag) && children.length() > 0 {
+        @abort.abort("Void element cannot have children: <" + tag + ">")
       }
 
-      // Add class attribute
-      if classes.length() > 0 {
+      // Prepare class output and filter out `class` attributes for pugjs-compatible merging.
+      let class_parts : Array[String] = []
+      for cls in classes {
+        class_parts.push(cls)
+      }
+      let other_attrs : Array[Attribute] = []
+      for attr in attributes {
+        if attr.name == "class" {
+          match attr.value {
+            Some(v) => {
+              let raw = eval_attr_value_raw(v, locals)
+              for part in raw.split(" ") {
+                let p = part.to_string()
+                if p.length() > 0 {
+                  class_parts.push(p)
+                }
+              }
+            }
+            None => class_parts.push("true")
+          }
+        } else {
+          other_attrs.push(attr)
+        }
+      }
+
+      // Add class attribute (merged)
+      if class_parts.length() > 0 {
         buf.write_string(" class=\"")
-        for i, cls in classes {
+        for i, cls in class_parts {
           if i > 0 {
             buf.write_string(" ")
           }
@@ -769,71 +821,42 @@ fn render_node_with_mixins(
         buf.write_string("\"")
       }
 
+      // Add id attribute
+      if id.length() > 0 {
+        buf.write_string(" id=\"")
+        buf.write_string(escape_html(id))
+        buf.write_string("\"")
+      }
+
       // Add other attributes
-      for attr in attributes {
+      for attr in other_attrs {
         buf.write_string(" ")
         buf.write_string(attr.name)
         match attr.value {
           Some(v) => {
-            // Has explicit value (even if empty string)
-            let should_escape = not(attr.unescaped)
-            let processed = if v.contains("#{") {
-              // Has interpolation, process normally
-              interpolate_string(v, locals, should_escape)
-            } else if needs_js_eval(v) {
-              // Expression needs JS evaluation (method calls, operators, etc.)
-              let result = eval_js_expression(v, locals)
-              if should_escape {
-                escape_html(result)
-              } else {
-                result
-              }
-            } else if v.contains("\"") || v.contains("'") {
-              // Quoted literal - strip quotes
-              let chars = v.to_array()
-              if chars.length() >= 2 &&
-                (
-                  (chars[0] == '"' && chars[chars.length() - 1] == '"') ||
-                  (chars[0] == '\'' && chars[chars.length() - 1] == '\'')
-                ) {
-                let inner = StringBuilder::new()
-                for i in 1..<(chars.length() - 1) {
-                  inner.write_char(chars[i])
-                }
-                if should_escape {
-                  escape_html(inner.to_string())
-                } else {
-                  inner.to_string()
-                }
-              } else if should_escape {
-                escape_html(v)
-              } else {
-                v
-              }
+            let raw = eval_attr_value_raw(v, locals)
+            let processed = if not(attr.unescaped) {
+              escape_html(raw)
             } else {
-              // Simple variable reference, try to look it up
-              match locals.get(v) {
-                Some(local_val) =>
-                  if should_escape {
-                    escape_html(local_val)
-                  } else {
-                    local_val
-                  }
-                None => if should_escape { escape_html(v) } else { v }
-              }
+              raw
             }
             buf.write_string("=\"")
             buf.write_string(processed)
             buf.write_string("\"")
           }
-          None => () // Boolean attribute, no value output
+          None => {
+            // Match Pug's default behavior: `p(foo)` renders as `foo="foo"`.
+            buf.write_string("=\"")
+            buf.write_string(escape_html(attr.name))
+            buf.write_string("\"")
+          }
         }
       }
       if self_closing {
         buf.write_string("/>")
         buf.write_string(newline)
       } else if is_void_element(tag) {
-        buf.write_string(">")
+        buf.write_string("/>")
         buf.write_string(newline)
       } else if children.length() == 0 {
         buf.write_string("></")
@@ -1447,14 +1470,37 @@ fn render_node_with_registry(
       buf.write_string(indent)
       buf.write_string("<")
       buf.write_string(tag)
-      if id.length() > 0 {
-        buf.write_string(" id=\"")
-        buf.write_string(escape_html(id))
-        buf.write_string("\"")
+      if is_void_element(tag) && children.length() > 0 {
+        @abort.abort("Void element cannot have children: <" + tag + ">")
       }
-      if classes.length() > 0 {
+
+      // Prepare class output and filter out `class` attributes for pugjs-compatible merging.
+      let class_parts : Array[String] = []
+      for cls in classes {
+        class_parts.push(cls)
+      }
+      let other_attrs : Array[Attribute] = []
+      for attr in attributes {
+        if attr.name == "class" {
+          match attr.value {
+            Some(v) => {
+              let raw = eval_attr_value_raw(v, locals)
+              for part in raw.split(" ") {
+                let p = part.to_string()
+                if p.length() > 0 {
+                  class_parts.push(p)
+                }
+              }
+            }
+            None => class_parts.push("true")
+          }
+        } else {
+          other_attrs.push(attr)
+        }
+      }
+      if class_parts.length() > 0 {
         buf.write_string(" class=\"")
-        for i, cls in classes {
+        for i, cls in class_parts {
           if i > 0 {
             buf.write_string(" ")
           }
@@ -1462,66 +1508,38 @@ fn render_node_with_registry(
         }
         buf.write_string("\"")
       }
-      for attr in attributes {
+      if id.length() > 0 {
+        buf.write_string(" id=\"")
+        buf.write_string(escape_html(id))
+        buf.write_string("\"")
+      }
+      for attr in other_attrs {
         buf.write_string(" ")
         buf.write_string(attr.name)
         match attr.value {
           Some(v) => {
-            let should_escape = not(attr.unescaped)
-            let processed = if v.contains("#{") {
-              interpolate_string(v, locals, should_escape)
-            } else if needs_js_eval(v) {
-              let result = eval_js_expression(v, locals)
-              if should_escape {
-                escape_html(result)
-              } else {
-                result
-              }
-            } else if v.contains("\"") || v.contains("'") {
-              // Quoted literal - strip quotes
-              let chars = v.to_array()
-              if chars.length() >= 2 &&
-                (
-                  (chars[0] == '"' && chars[chars.length() - 1] == '"') ||
-                  (chars[0] == '\'' && chars[chars.length() - 1] == '\'')
-                ) {
-                let inner = StringBuilder::new()
-                for i in 1..<(chars.length() - 1) {
-                  inner.write_char(chars[i])
-                }
-                if should_escape {
-                  escape_html(inner.to_string())
-                } else {
-                  inner.to_string()
-                }
-              } else if should_escape {
-                escape_html(v)
-              } else {
-                v
-              }
+            let raw = eval_attr_value_raw(v, locals)
+            let processed = if not(attr.unescaped) {
+              escape_html(raw)
             } else {
-              match locals.get(v) {
-                Some(local_val) =>
-                  if should_escape {
-                    escape_html(local_val)
-                  } else {
-                    local_val
-                  }
-                None => if should_escape { escape_html(v) } else { v }
-              }
+              raw
             }
             buf.write_string("=\"")
             buf.write_string(processed)
             buf.write_string("\"")
           }
-          None => ()
+          None => {
+            buf.write_string("=\"")
+            buf.write_string(escape_html(attr.name))
+            buf.write_string("\"")
+          }
         }
       }
       if self_closing {
         buf.write_string("/>")
         buf.write_string(newline)
       } else if is_void_element(tag) {
-        buf.write_string(">")
+        buf.write_string("/>")
         buf.write_string(newline)
       } else if children.length() == 0 {
         buf.write_string("></")

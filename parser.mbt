@@ -375,6 +375,10 @@ fn Parser::parse_element(self : Parser) -> Node? {
 
   // Parse attributes
   if self.peek() is Some(LParen) {
+    let seen_attrs : Map[String, Bool] = {}
+    if id.length() > 0 {
+      seen_attrs["id"] = true
+    }
     let _ = self.advance() // consume LParen
     while true {
       match self.peek() {
@@ -397,6 +401,12 @@ fn Parser::parse_element(self : Parser) -> Node? {
               let _ = self.advance()
 
             }
+          }
+          if name != "class" && seen_attrs.contains(name) {
+            @abort.abort("Duplicate attribute \"" + name + "\" is not allowed.")
+          }
+          if name != "class" {
+            seen_attrs[name] = true
           }
           attributes.push({ name, value, unescaped })
         }

@@ -131,7 +131,13 @@ fn is_id_class_char(c : Char) -> Bool {
 
 ///|
 fn is_attr_name_char(c : Char) -> Bool {
-  is_alpha(c) || c == '-' || c == '_' || c == ':'
+  c != ' ' &&
+  c != ',' &&
+  c != '\t' &&
+  c != '\n' &&
+  c != ')' &&
+  c != '=' &&
+  c != '!'
 }
 
 ///|
@@ -192,6 +198,22 @@ fn Lexer::take_while(self : Lexer, pred : (Char) -> Bool) -> String {
     buf.write_char(c)
     let _ = self.advance()
 
+  }
+  buf.to_string()
+}
+
+///|
+fn Lexer::preview_from(self : Lexer, from : Int, max_len : Int) -> String {
+  let end = if from + max_len > self.chars.length() {
+    self.chars.length()
+  } else {
+    from + max_len
+  }
+  let buf = StringBuilder::new()
+  let mut i = from
+  while i < end {
+    buf.write_char(self.chars[i])
+    i += 1
   }
   buf.to_string()
 }
@@ -355,6 +377,7 @@ fn Lexer::parse_mixin_def(self : Lexer) -> (String, Array[(String, String)]) {
   if self.peek() is Some('(') {
     let _ = self.advance() // consume (
     while self.peek() is Some(c) && c != ')' {
+      let loop_start_pos = self.pos
       self.skip_while(fn(c) { c == ' ' || c == ',' })
       if self.peek() is Some(')') {
         break
@@ -404,6 +427,16 @@ fn Lexer::parse_mixin_def(self : Lexer) -> (String, Array[(String, String)]) {
         let param_name = if is_rest { "..." + param } else { param }
         params.push((param_name, default_val))
       }
+      if self.pos <= loop_start_pos {
+        let preview = self.preview_from(loop_start_pos, 40)
+        @abort.abort(
+          "Lexer::parse_mixin_def made no progress (pos=" +
+          loop_start_pos.to_string() +
+          " preview=" +
+          preview +
+          ")",
+        )
+      }
     }
     if self.peek() is Some(')') {
       let _ = self.advance()
@@ -420,6 +453,7 @@ fn Lexer::parse_mixin_args(self : Lexer) -> Array[String] {
   if self.peek() is Some('(') {
     let _ = self.advance() // consume (
     while self.peek() is Some(c) && c != ')' {
+      let loop_start_pos = self.pos
       self.skip_while(fn(c) { c == ' ' || c == ',' })
       if self.peek() is Some(')') {
         break
@@ -449,6 +483,16 @@ fn Lexer::parse_mixin_args(self : Lexer) -> Array[String] {
       if arg.length() > 0 {
         args.push(arg)
       }
+      if self.pos <= loop_start_pos {
+        let preview = self.preview_from(loop_start_pos, 40)
+        @abort.abort(
+          "Lexer::parse_mixin_args made no progress (pos=" +
+          loop_start_pos.to_string() +
+          " preview=" +
+          preview +
+          ")",
+        )
+      }
     }
     if self.peek() is Some(')') {
       let _ = self.advance()
@@ -465,6 +509,7 @@ fn Lexer::parse_mixin_attrs(self : Lexer) -> Array[(String, String)] {
   if self.peek() is Some('(') {
     let _ = self.advance() // consume (
     while self.peek() is Some(c) && c != ')' {
+      let loop_start_pos = self.pos
       self.skip_while(fn(c) { c == ' ' || c == ',' })
       if self.peek() is Some(')') {
         break
@@ -483,6 +528,25 @@ fn Lexer::parse_mixin_attrs(self : Lexer) -> Array[(String, String)] {
           // Boolean attribute
           attrs.push((attr_name, ""))
         }
+      } else {
+        let preview = self.preview_from(self.pos, 40)
+        @abort.abort(
+          "Lexer::parse_mixin_attrs invalid attribute (pos=" +
+          self.pos.to_string() +
+          " preview=" +
+          preview +
+          ")",
+        )
+      }
+      if self.pos <= loop_start_pos {
+        let preview = self.preview_from(loop_start_pos, 40)
+        @abort.abort(
+          "Lexer::parse_mixin_attrs made no progress (pos=" +
+          loop_start_pos.to_string() +
+          " preview=" +
+          preview +
+          ")",
+        )
       }
     }
     if self.peek() is Some(')') {
@@ -870,13 +934,16 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
     while self.peek() is Some(_) {
       // Check current line's indentation
       let mut line_indent = 0
+      let mut indent_chars = 0
       while self.peek() is Some(' ') {
         line_indent += 1
+        indent_chars += 1
         let _ = self.advance()
 
       }
       while self.peek() is Some('\t') {
         line_indent += 2
+        indent_chars += 1
         let _ = self.advance()
 
       }
@@ -886,7 +953,7 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
         self.peek() is Some(c) &&
         c != '\n' {
         // Put back the indentation chars
-        self.pos -= line_indent
+        self.pos -= indent_chars
         break
       }
       // If empty line, add newline and continue
@@ -1138,6 +1205,7 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
     let _ = self.advance()
     tokens.push(LParen)
     while self.peek() is Some(c) && c != ')' {
+      let loop_start_pos = self.pos
       // Skip whitespace, commas, and newlines (for multi-line attributes)
       self.skip_while(fn(c) { c == ' ' || c == ',' || c == '\t' || c == '\n' })
       if self.peek() is Some(')') {
@@ -1166,6 +1234,25 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
           let value = self.read_attr_value()
           tokens.push(AttrValue(value))
         }
+      } else {
+        let preview = self.preview_from(self.pos, 40)
+        @abort.abort(
+          "Lexer::tokenize_line invalid attribute (pos=" +
+          self.pos.to_string() +
+          " preview=" +
+          preview +
+          ")",
+        )
+      }
+      if self.pos <= loop_start_pos {
+        let preview = self.preview_from(loop_start_pos, 40)
+        @abort.abort(
+          "Lexer::tokenize_line attributes made no progress (pos=" +
+          loop_start_pos.to_string() +
+          " preview=" +
+          preview +
+          ")",
+        )
       }
     }
     if self.peek() is Some(')') {
@@ -1213,6 +1300,7 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
       let _ = self.advance()
       tokens.push(LParen)
       while self.peek() is Some(c) && c != ')' {
+        let loop_start_pos = self.pos
         self.skip_while(fn(c) { c == ' ' || c == ',' || c == '\t' || c == '\n' })
         if self.peek() is Some(')') {
           break
@@ -1235,6 +1323,25 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
             let value = self.read_attr_value()
             tokens.push(AttrValue(value))
           }
+        } else {
+          let preview = self.preview_from(self.pos, 40)
+          @abort.abort(
+            "Lexer::tokenize_line (block expand) invalid attribute (pos=" +
+            self.pos.to_string() +
+            " preview=" +
+            preview +
+            ")",
+          )
+        }
+        if self.pos <= loop_start_pos {
+          let preview = self.preview_from(loop_start_pos, 40)
+          @abort.abort(
+            "Lexer::tokenize_line (block expand) attributes made no progress (pos=" +
+            loop_start_pos.to_string() +
+            " preview=" +
+            preview +
+            ")",
+          )
         }
       }
       if self.peek() is Some(')') {
@@ -1399,6 +1506,7 @@ pub fn Lexer::tokenize(self : Lexer) -> Array[Token] {
   let all_tokens : Array[Token] = []
   let mut current_indent = 0
   while self.pos < self.chars.length() {
+    let start_pos = self.pos
     let line_tokens = self.tokenize_line()
     // Track indent level
     for tok in line_tokens {
@@ -1442,6 +1550,18 @@ pub fn Lexer::tokenize(self : Lexer) -> Array[Token] {
     }
     if line_tokens.last() is Some(EOF) {
       break
+    }
+    // Safety: if tokenization doesn't move the cursor forward, we'd spin forever.
+    // Prefer aborting with context over hanging.
+    if self.pos <= start_pos {
+      let preview = self.preview_from(start_pos, 40)
+      @abort.abort(
+        "Lexer::tokenize made no progress (pos=" +
+        start_pos.to_string() +
+        " preview=" +
+        preview +
+        ")",
+      )
     }
   }
   if all_tokens.is_empty() || not(all_tokens.last() is Some(EOF)) {

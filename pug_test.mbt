@@ -122,7 +122,7 @@ test "tag with multiple classes" {
 test "tag with id and classes" {
   inspect(
     @pug.render("div#main.container.active"),
-    content="<div id=\"main\" class=\"container active\"></div>",
+    content="<div class=\"container active\" id=\"main\"></div>",
   )
   @json.json_inspect(@pug.parse("div#main.container.active"), content={
     "nodes": [
@@ -216,7 +216,7 @@ test "tag with multiple attributes" {
     @pug.render(
       "input(type=\"text\", name=\"username\", placeholder=\"Enter name\")",
     ),
-    content="<input type=\"text\" name=\"username\" placeholder=\"Enter name\">",
+    content="<input type=\"text\" name=\"username\" placeholder=\"Enter name\"/>",
   )
   @json.json_inspect(
     @pug.parse(
@@ -250,7 +250,7 @@ test "tag with multiple attributes" {
 
 ///|
 test "void element" {
-  inspect(@pug.render("br"), content="<br>")
+  inspect(@pug.render("br"), content="<br/>")
   @json.json_inspect(@pug.parse("br"), content={
     "nodes": [
       [
@@ -272,7 +272,7 @@ test "void element" {
 test "img element" {
   inspect(
     @pug.render("img(src=\"photo.jpg\", alt=\"A photo\")"),
-    content="<img src=\"photo.jpg\" alt=\"A photo\">",
+    content="<img src=\"photo.jpg\" alt=\"A photo\"/>",
   )
   @json.json_inspect(@pug.parse("img(src=\"photo.jpg\", alt=\"A photo\")"), content={
     "nodes": [
@@ -489,7 +489,7 @@ test "full html page" {
     #|    p.intro This is a paragraph.
   inspect(
     @pug.render(pug),
-    content="<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>Example</title></head><body><h1 id=\"title\" class=\"heading\">Welcome</h1><p class=\"intro\">This is a paragraph.</p></body></html>",
+    content="<!DOCTYPE html><html><head><meta charset=\"utf-8\"/><title>Example</title></head><body><h1 class=\"heading\" id=\"title\">Welcome</h1><p class=\"intro\">This is a paragraph.</p></body></html>",
   )
   @json.json_inspect(@pug.parse(pug), content={
     "nodes": [

@@ -32,7 +32,7 @@ test "usage example" {
   let html = @pug.render(pug)
   inspect(
     html,
-    content="<!DOCTYPE html><html><head><title>Hello Pug</title></head><body><h1 id=\"greeting\" class=\"title\">Hello, World!</h1><p>This is rendered from Pug.</p></body></html>",
+    content="<!DOCTYPE html><html><head><title>Hello Pug</title></head><body><h1 class=\"title\" id=\"greeting\">Hello, World!</h1><p>This is rendered from Pug.</p></body></html>",
   )
 
   // Render to pretty-printed HTML

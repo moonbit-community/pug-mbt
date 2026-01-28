@@ -55,7 +55,7 @@ test "multi-line attributes" {
     #|)
   inspect(
     @pug.render(pug),
-    content="<input type=\"checkbox\" name=\"agreement\" checked>",
+    content="<input type=\"checkbox\" name=\"agreement\" checked=\"checked\"/>",
   )
   @json.json_inspect(@pug.parse(pug), content={
     "nodes": [
@@ -82,7 +82,7 @@ test "multi-line attributes" {
 test "boolean attribute" {
   inspect(
     @pug.render("input(type=\"checkbox\", checked)"),
-    content="<input type=\"checkbox\" checked>",
+    content="<input type=\"checkbox\" checked=\"checked\"/>",
   )
   @json.json_inspect(@pug.parse("input(type=\"checkbox\", checked)"), content={
     "nodes": [
@@ -106,7 +106,10 @@ test "boolean attribute" {
 
 ///|
 test "boolean attribute standalone" {
-  inspect(@pug.render("input(disabled)"), content="<input disabled>")
+  inspect(
+    @pug.render("input(disabled)"),
+    content="<input disabled=\"disabled\"/>",
+  )
   @json.json_inspect(@pug.parse("input(disabled)"), content={
     "nodes": [
       [
@@ -128,7 +131,7 @@ test "boolean attribute standalone" {
 test "multiple boolean attributes" {
   inspect(
     @pug.render("input(type=\"text\", required, readonly)"),
-    content="<input type=\"text\" required readonly>",
+    content="<input type=\"text\" required=\"required\" readonly=\"readonly\"/>",
   )
   @json.json_inspect(@pug.parse("input(type=\"text\", required, readonly)"), content={
     "nodes": [
@@ -143,6 +146,26 @@ test "multiple boolean attributes" {
             { "name": "required", "unescaped": false },
             { "name": "readonly", "unescaped": false },
           ],
+          "children": [],
+          "self_closing": false,
+        },
+      ],
+    ],
+  })
+}
+
+///|
+test "attribute shorthand supports numeric names (pug-compatible)" {
+  inspect(@pug.render("p(7)"), content="<p 7=\"7\"></p>")
+  @json.json_inspect(@pug.parse("p(7)"), content={
+    "nodes": [
+      [
+        "Element",
+        {
+          "tag": "p",
+          "id": "",
+          "classes": [],
+          "attributes": [{ "name": "7", "unescaped": false }],
           "children": [],
           "self_closing": false,
         },
@@ -246,7 +269,7 @@ test "attribute with interpolation" {
 test "class and id combined with attributes" {
   inspect(
     @pug.render("button#submit.btn.primary(type=\"submit\") Submit"),
-    content="<button id=\"submit\" class=\"btn primary\" type=\"submit\">Submit</button>",
+    content="<button class=\"btn primary\" id=\"submit\" type=\"submit\">Submit</button>",
   )
   @json.json_inspect(
     @pug.parse("button#submit.btn.primary(type=\"submit\") Submit"),

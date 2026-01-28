@@ -1,0 +1,12 @@
+{
+  "is-main": true,
+  "import": [
+    {
+      "path": "Milky2018/pug",
+      "alias": "pug"
+    },
+    "moonbitlang/x/sys",
+    "moonbitlang/x/codec/base64",
+    "moonbitlang/core/encoding/utf8"
+  ]
+}

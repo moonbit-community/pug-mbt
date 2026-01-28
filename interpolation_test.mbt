@@ -227,7 +227,7 @@ test "interpolation in attribute" {
   locals.set("cls", "active")
   inspect(
     @pug.render_with_locals("div(id=\"#{id}\", class=\"#{cls}\")", locals),
-    content="<div id=\"main\" class=\"active\"></div>",
+    content="<div class=\"active\" id=\"main\"></div>",
   )
   @json.json_inspect(@pug.parse("div(id=\"#{id}\", class=\"#{cls}\")"), content={
     "nodes": [
