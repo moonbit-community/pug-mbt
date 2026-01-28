@@ -199,7 +199,7 @@ pub enum Node {
 /// A Pug document is a list of nodes
 pub struct Document {
   nodes : Array[Node]
-} derive(ToJson)
+} derive(ToJson, Show)
 
 ///|
 pub fn Document::new() -> Document {

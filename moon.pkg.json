@@ -3,7 +3,8 @@
     "moonbitlang/x/fs",
     "moonbitlang/core/abort",
     "moonbitlang/core/strconv",
-    "moonbitlang/core/json"
+    "moonbitlang/core/json",
+    "moonbitlang/quickcheck"
   ],
   "targets": {
     "pugjs_generated_test.mbt": ["js"],
