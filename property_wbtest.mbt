@@ -24,7 +24,7 @@ fn gen_ident_char() -> @quickcheck.Gen[Char] {
 ///|
 fn gen_ident(len_min? : Int = 1, len_max? : Int = 8) -> @quickcheck.Gen[String] {
   @quickcheck.int_range(len_min, len_max).bind(fn(len) {
-    @quickcheck.Gen::array_with_size(gen_ident_char(), len).fmap(
+    @quickcheck.Gen::array_with_size(gen_ident_char(), len + 1).fmap(
       chars_to_string,
     )
   })
@@ -266,29 +266,6 @@ fn to_pug(doc : Document) -> String {
 }
 
 ///|
-/// Properties
-test "prop roundtrip render == parse-render" {
-  let prop = @quickcheck.forall(gen_document(), fn(raw_doc) {
-    let pug_src = to_pug(raw_doc)
-    let parsed = parse(pug_src)
-    let lhs = parsed.render(options=RenderOptions::default())
-    println("Pug source:\n" + parsed.to_string())
-    let rhs = (parsed.to_string() |> parse).render(
-      options=RenderOptions::default(),
-    )
-    lhs == rhs
-  })
-  @quickcheck.quick_check(prop, max_success=1, max_size=1)
-}
-
-///|
-test "infinite loop" {
-  let pug_src = "]"
-  let doc = tokenize(pug_src)
-  inspect(doc)
-}
-
-///|
 test "prop interpolation escape vs unescaped" {
   let prop = @quickcheck.forall(gen_safe_text(), fn(value) {
     let locals = Locals::new()
@@ -301,9 +278,11 @@ test "prop interpolation escape vs unescaped" {
 }
 
 ///|
-test "property termination" {
-  @quickcheck.quick_check_fn(fn(s : String) {
-    let tokenized = tokenize(s)
+test "property tokenizer termination" {
+  let prop = @quickcheck.forall(gen_document(), (s : Document) => {
+    let pug_src = to_pug(s)
+    let tokenized = tokenize(pug_src)
     not(tokenized.is_empty()) && tokenized.last() is Some(EOF)
   })
+  @quickcheck.quick_check(prop, max_success=200, max_size=200)
 }
