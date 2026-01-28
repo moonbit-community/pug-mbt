@@ -36,7 +36,10 @@ test "unless - basic false" {
     #|  p Please log in
   let locals = Locals::new()
   locals.set("loggedIn", "false")
-  @json.json_inspect(render_with_locals(pug, locals), content="<p>Please log in</p>")
+  @json.json_inspect(
+    render_with_locals(pug, locals),
+    content="<p>Please log in</p>",
+  )
 }
 
 // ============================================================================
@@ -216,7 +219,10 @@ test "logical operator - and (&&) both true" {
   let locals = Locals::new()
   locals.set("loggedIn", "true")
   locals.set("isAdmin", "true")
-  @json.json_inspect(render_with_locals(pug, locals), content="<p>Welcome admin</p>")
+  @json.json_inspect(
+    render_with_locals(pug, locals),
+    content="<p>Welcome admin</p>",
+  )
 }
 
 ///|
