@@ -27,7 +27,7 @@ test "simple block definition" {
     @pug.render(pug),
     content="<html><body><p>Default content</p></body></html>",
   )
-  @json.inspect(@pug.parse(pug), content={
+  @json.json_inspect(@pug.parse(pug), content={
     "nodes": [
       [
         "Element",
@@ -95,8 +95,8 @@ test "block with extends" {
   // Test that we can parse both templates
   let layout_doc = parse(layout)
   let child_doc = parse(child)
-  @json.inspect(layout_doc.nodes.length() > 0, content=true)
-  @json.inspect(child_doc.nodes.length() > 0, content=true)
+  @json.json_inspect(layout_doc.nodes.length() > 0, content=true)
+  @json.json_inspect(child_doc.nodes.length() > 0, content=true)
 }
 
 ///|
@@ -110,7 +110,7 @@ test "append block" {
     #|  script(src="/app.js")
   let html = render(pug)
   // append adds to the end of the block
-  @json.inspect(
+  @json.json_inspect(
     html,
     content="<html><head><script src=\"/jquery.js\"></script><script src=\"/app.js\"></script></head></html>",
   )
@@ -127,7 +127,7 @@ test "prepend block" {
     #|  script(src="/jquery.js")
   let html = render(pug)
   // prepend adds to the beginning of the block
-  @json.inspect(
+  @json.json_inspect(
     html,
     content="<html><head><script src=\"/jquery.js\"></script><script src=\"/app.js\"></script></head></html>",
   )
@@ -152,7 +152,7 @@ test "extends with registry - basic" {
     #|block content
     #|  p Child content
   let html = render_with_registry(child, Locals::new(), registry)
-  @json.inspect(
+  @json.json_inspect(
     html,
     content="<html><head><title>Default Title</title></head><body><p>Child content</p></body></html>",
   )
@@ -172,7 +172,7 @@ test "extends with registry - append block" {
     #|append scripts
     #|  script(src="/app.js")
   let html = render_with_registry(child, Locals::new(), registry)
-  @json.inspect(
+  @json.json_inspect(
     html,
     content="<html><head><script src=\"/jquery.js\"></script><script src=\"/app.js\"></script></head></html>",
   )
@@ -192,7 +192,7 @@ test "extends with registry - prepend block" {
     #|prepend scripts
     #|  script(src="/jquery.js")
   let html = render_with_registry(child, Locals::new(), registry)
-  @json.inspect(
+  @json.json_inspect(
     html,
     content="<html><head><script src=\"/jquery.js\"></script><script src=\"/app.js\"></script></head></html>",
   )

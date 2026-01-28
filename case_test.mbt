@@ -29,7 +29,7 @@ test "case with when" {
   let locals = Locals::new()
   locals.set("status", "active")
   inspect(@pug.render_with_locals(pug, locals), content="<p>Active</p>")
-  @json.inspect(@pug.parse(pug), content={
+  @json.json_inspect(@pug.parse(pug), content={
     "nodes": [
       [
         "Case",
@@ -99,7 +99,7 @@ test "case with default" {
   let locals = Locals::new()
   locals.set("status", "other")
   inspect(@pug.render_with_locals(pug, locals), content="<p>Unknown</p>")
-  @json.inspect(@pug.parse(pug), content={
+  @json.json_inspect(@pug.parse(pug), content={
     "nodes": [
       [
         "Case",
@@ -155,7 +155,7 @@ test "case with fall through" {
   let locals = Locals::new()
   locals.set("num", "1")
   inspect(@pug.render_with_locals(pug, locals), content="<p>Small number</p>")
-  @json.inspect(@pug.parse(pug), content={
+  @json.json_inspect(@pug.parse(pug), content={
     "nodes": [
       [
         "Case",
@@ -210,7 +210,7 @@ test "case with block expansion" {
   let locals = Locals::new()
   locals.set("type", "b")
   inspect(@pug.render_with_locals(pug, locals), content="<p>Type B</p>")
-  @json.inspect(@pug.parse(pug), content={
+  @json.json_inspect(@pug.parse(pug), content={
     "nodes": [
       [
         "Case",
@@ -284,7 +284,7 @@ test "nested case" {
     @pug.render_with_locals(pug, locals),
     content="<div><span class=\"red\">Red</span></div>",
   )
-  @json.inspect(@pug.parse(pug), content={
+  @json.json_inspect(@pug.parse(pug), content={
     "nodes": [
       [
         "Element",

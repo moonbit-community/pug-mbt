@@ -22,7 +22,7 @@ test "attribute with single quotes" {
     @pug.render("a(href='https://example.com') Link"),
     content="<a href=\"https://example.com\">Link</a>",
   )
-  @json.inspect(@pug.parse("a(href='https://example.com') Link"), content={
+  @json.json_inspect(@pug.parse("a(href='https://example.com') Link"), content={
     "nodes": [
       [
         "Element",
@@ -57,7 +57,7 @@ test "multi-line attributes" {
     @pug.render(pug),
     content="<input type=\"checkbox\" name=\"agreement\" checked>",
   )
-  @json.inspect(@pug.parse(pug), content={
+  @json.json_inspect(@pug.parse(pug), content={
     "nodes": [
       [
         "Element",
@@ -84,7 +84,7 @@ test "boolean attribute" {
     @pug.render("input(type=\"checkbox\", checked)"),
     content="<input type=\"checkbox\" checked>",
   )
-  @json.inspect(@pug.parse("input(type=\"checkbox\", checked)"), content={
+  @json.json_inspect(@pug.parse("input(type=\"checkbox\", checked)"), content={
     "nodes": [
       [
         "Element",
@@ -107,7 +107,7 @@ test "boolean attribute" {
 ///|
 test "boolean attribute standalone" {
   inspect(@pug.render("input(disabled)"), content="<input disabled>")
-  @json.inspect(@pug.parse("input(disabled)"), content={
+  @json.json_inspect(@pug.parse("input(disabled)"), content={
     "nodes": [
       [
         "Element",
@@ -130,7 +130,7 @@ test "multiple boolean attributes" {
     @pug.render("input(type=\"text\", required, readonly)"),
     content="<input type=\"text\" required readonly>",
   )
-  @json.inspect(@pug.parse("input(type=\"text\", required, readonly)"), content={
+  @json.json_inspect(@pug.parse("input(type=\"text\", required, readonly)"), content={
     "nodes": [
       [
         "Element",
@@ -157,7 +157,7 @@ test "unescaped attribute with !=" {
     @pug.render("div(data-content!=\"<strong>bold</strong>\")"),
     content="<div data-content=\"<strong>bold</strong>\"></div>",
   )
-  @json.inspect(@pug.parse("div(data-content!=\"<strong>bold</strong>\")"), content={
+  @json.json_inspect(@pug.parse("div(data-content!=\"<strong>bold</strong>\")"), content={
     "nodes": [
       [
         "Element",
@@ -186,7 +186,7 @@ test "escaped attribute value" {
     @pug.render("div(data-content=\"<script>alert('xss')</script>\")"),
     content="<div data-content=\"&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;\"></div>",
   )
-  @json.inspect(
+  @json.json_inspect(
     @pug.parse("div(data-content=\"<script>alert('xss')</script>\")"),
     content={
       "nodes": [
@@ -220,7 +220,7 @@ test "attribute with interpolation" {
     @pug.render_with_locals("a(href=\"#{url}\") MoonBit", locals),
     content="<a href=\"https://moonbit.io\">MoonBit</a>",
   )
-  @json.inspect(@pug.parse("a(href=\"#{url}\") MoonBit"), content={
+  @json.json_inspect(@pug.parse("a(href=\"#{url}\") MoonBit"), content={
     "nodes": [
       [
         "Element",
@@ -245,7 +245,7 @@ test "class and id combined with attributes" {
     @pug.render("button#submit.btn.primary(type=\"submit\") Submit"),
     content="<button id=\"submit\" class=\"btn primary\" type=\"submit\">Submit</button>",
   )
-  @json.inspect(
+  @json.json_inspect(
     @pug.parse("button#submit.btn.primary(type=\"submit\") Submit"),
     content={
       "nodes": [
@@ -273,7 +273,7 @@ test "empty attribute value" {
     @pug.render("div(data-empty=\"\")"),
     content="<div data-empty=\"\"></div>",
   )
-  @json.inspect(@pug.parse("div(data-empty=\"\")"), content={
+  @json.json_inspect(@pug.parse("div(data-empty=\"\")"), content={
     "nodes": [
       [
         "Element",
@@ -298,7 +298,7 @@ test "attribute with spaces in value" {
     @pug.render("div(title=\"Hello World\")"),
     content="<div title=\"Hello World\"></div>",
   )
-  @json.inspect(@pug.parse("div(title=\"Hello World\")"), content={
+  @json.json_inspect(@pug.parse("div(title=\"Hello World\")"), content={
     "nodes": [
       [
         "Element",
@@ -323,7 +323,7 @@ test "data attributes" {
     @pug.render("div(data-id=\"123\", data-name=\"test\")"),
     content="<div data-id=\"123\" data-name=\"test\"></div>",
   )
-  @json.inspect(@pug.parse("div(data-id=\"123\", data-name=\"test\")"), content={
+  @json.json_inspect(@pug.parse("div(data-id=\"123\", data-name=\"test\")"), content={
     "nodes": [
       [
         "Element",

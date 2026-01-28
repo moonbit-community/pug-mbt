@@ -22,7 +22,7 @@ test "inline text with html entities" {
     @pug.render("p This is plain old <em>text</em> content."),
     content="<p>This is plain old &lt;em&gt;text&lt;/em&gt; content.</p>",
   )
-  @json.inspect(@pug.parse("p This is plain old <em>text</em> content."), content={
+  @json.json_inspect(@pug.parse("p This is plain old <em>text</em> content."), content={
     "nodes": [
       [
         "Element",
@@ -45,7 +45,7 @@ test "piped text single line" {
     #|p
     #|  | This is piped text
   inspect(@pug.render(pug), content="<p>This is piped text</p>")
-  @json.inspect(@pug.parse(pug), content={
+  @json.json_inspect(@pug.parse(pug), content={
     "nodes": [
       [
         "Element",
@@ -70,7 +70,7 @@ test "piped text multiple lines" {
     #|  | Line two
     #|  | Line three
   inspect(@pug.render(pug), content="<p>Line oneLine twoLine three</p>")
-  @json.inspect(@pug.parse(pug), content={
+  @json.json_inspect(@pug.parse(pug), content={
     "nodes": [
       [
         "Element",
@@ -102,7 +102,7 @@ test "piped text with inline tag" {
     @pug.render(pug),
     content="<p>Click<a href=\"#\">here</a>to continue</p>",
   )
-  @json.inspect(@pug.parse(pug), content={
+  @json.json_inspect(@pug.parse(pug), content={
     "nodes": [
       [
         "Element",
@@ -145,7 +145,7 @@ test "block text with dot" {
     @pug.render(pug),
     content="<script>console.log('hello');\nconsole.log('world');</script>",
   )
-  @json.inspect(@pug.parse(pug), content={
+  @json.json_inspect(@pug.parse(pug), content={
     "nodes": [
       [
         "Element",
@@ -170,7 +170,7 @@ test "style block text" {
     #|    color: red;
     #|  }
   inspect(@pug.render(pug), content="<style>body {\n  color: red;\n}</style>")
-  @json.inspect(@pug.parse(pug), content={
+  @json.json_inspect(@pug.parse(pug), content={
     "nodes": [
       [
         "Element",
@@ -198,7 +198,7 @@ test "pre block preserves whitespace" {
     @pug.render(pug),
     content="<pre>function hello() {\n  return 'world';\n}</pre>",
   )
-  @json.inspect(@pug.parse(pug), content={
+  @json.json_inspect(@pug.parse(pug), content={
     "nodes": [
       [
         "Element",

@@ -19,7 +19,7 @@
 ///|
 test "simple block expansion" {
   inspect(@pug.render("a: img"), content="<a><img></a>")
-  @json.inspect(@pug.parse("a: img"), content={
+  @json.json_inspect(@pug.parse("a: img"), content={
     "nodes": [
       [
         "Element",
@@ -54,7 +54,7 @@ test "block expansion with text" {
     @pug.render("p: strong Bold text"),
     content="<p><strong>Bold text</strong></p>",
   )
-  @json.inspect(@pug.parse("p: strong Bold text"), content={
+  @json.json_inspect(@pug.parse("p: strong Bold text"), content={
     "nodes": [
       [
         "Element",
@@ -89,7 +89,7 @@ test "block expansion with attributes" {
     @pug.render("a(href=\"/\"): img(src=\"logo.png\")"),
     content="<a href=\"/\"><img src=\"logo.png\"></a>",
   )
-  @json.inspect(@pug.parse("a(href=\"/\"): img(src=\"logo.png\")"), content={
+  @json.json_inspect(@pug.parse("a(href=\"/\"): img(src=\"logo.png\")"), content={
     "nodes": [
       [
         "Element",
@@ -126,7 +126,7 @@ test "chained block expansion" {
     @pug.render("div: p: span Hello"),
     content="<div><p><span>Hello</span></p></div>",
   )
-  @json.inspect(@pug.parse("div: p: span Hello"), content={
+  @json.json_inspect(@pug.parse("div: p: span Hello"), content={
     "nodes": [
       [
         "Element",
@@ -173,7 +173,7 @@ test "block expansion with class" {
     @pug.render("ul.menu: li.item First"),
     content="<ul class=\"menu\"><li class=\"item\">First</li></ul>",
   )
-  @json.inspect(@pug.parse("ul.menu: li.item First"), content={
+  @json.json_inspect(@pug.parse("ul.menu: li.item First"), content={
     "nodes": [
       [
         "Element",
@@ -212,7 +212,7 @@ test "block expansion followed by sibling" {
     @pug.render(pug),
     content="<div><p><span>Inline</span></p><p>Normal</p></div>",
   )
-  @json.inspect(@pug.parse(pug), content={
+  @json.json_inspect(@pug.parse(pug), content={
     "nodes": [
       [
         "Element",

@@ -1,12 +1,11 @@
 {
   "import": [
     "moonbitlang/x/fs",
-    "moonbitlang/quickcheck"
-  ],
-  "test-import": [
-    "moonbitlang/quickcheck"
+    "moonbitlang/core/strconv",
+    "moonbitlang/core/json"
   ],
   "targets": {
+    "pugjs_generated_test.mbt": ["js"],
     "interpolation_js_test.mbt": ["js"],
     "js_eval.mbt": ["js"],
     "js_eval_stub.mbt": ["not", "js"],

@@ -28,7 +28,7 @@ test "each over array" {
     @pug.render_with_locals(pug, locals),
     content="<ul><li>Apple</li><li>Banana</li><li>Cherry</li></ul>",
   )
-  @json.inspect(@pug.parse(pug), content={
+  @json.json_inspect(@pug.parse(pug), content={
     "nodes": [
       [
         "Element",
@@ -80,7 +80,7 @@ test "each with index" {
     @pug.render_with_locals(pug, locals),
     content="<ul><li>0: a</li><li>1: b</li><li>2: c</li></ul>",
   )
-  @json.inspect(@pug.parse(pug), content={
+  @json.json_inspect(@pug.parse(pug), content={
     "nodes": [
       [
         "Element",
@@ -136,7 +136,7 @@ test "each over object" {
     @pug.render_with_locals(pug, locals),
     content="<ul><li>name: Alice</li><li>age: 30</li></ul>",
   )
-  @json.inspect(@pug.parse(pug), content={
+  @json.json_inspect(@pug.parse(pug), content={
     "nodes": [
       [
         "Element",
@@ -194,7 +194,7 @@ test "each with else for empty" {
     @pug.render_with_locals(pug, locals),
     content="<ul><li>No items</li></ul>",
   )
-  @json.inspect(@pug.parse(pug), content={
+  @json.json_inspect(@pug.parse(pug), content={
     "nodes": [
       [
         "Element",
@@ -258,7 +258,7 @@ test "for alias for each" {
     @pug.render_with_locals(pug, locals),
     content="<ul><li>One</li><li>Two</li></ul>",
   )
-  @json.inspect(@pug.parse(pug), content={
+  @json.json_inspect(@pug.parse(pug), content={
     "nodes": [
       [
         "Element",
@@ -306,7 +306,7 @@ test "while loop" {
     #|  while n < 3
     #|    li= n++
   inspect(@pug.render(pug), content="<ul><li>0</li><li>1</li><li>2</li></ul>")
-  @json.inspect(@pug.parse(pug), content={
+  @json.json_inspect(@pug.parse(pug), content={
     "nodes": [
       [
         "Element",
@@ -358,7 +358,7 @@ test "nested iteration" {
     @pug.render_with_locals(pug, locals),
     content="<table><tr><td>1</td><td>2</td></tr><tr><td>3</td><td>4</td></tr></table>",
   )
-  @json.inspect(@pug.parse(pug), content={
+  @json.json_inspect(@pug.parse(pug), content={
     "nodes": [
       [
         "Element",
