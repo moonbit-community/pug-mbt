@@ -27,7 +27,7 @@ test "simple include parsing" {
     #|    p Content
     #|  include footer.pug
   let doc = parse(pug)
-  @json.inspect(doc.nodes.length() > 0, content=true)
+  @json.json_inspect(doc.nodes.length() > 0, content=true)
 }
 
 ///|
@@ -45,7 +45,7 @@ test "include with registry" {
     @pug.render_with_registry(pug, Locals::new(), registry),
     content="<html><header><h1>Site Title</h1></header><body><p>Content</p></body><footer><p>Copyright 2024</p></footer></html>",
   )
-  @json.inspect(@pug.parse_with_registry(pug, registry), content={
+  @json.json_inspect(@pug.parse_with_registry(pug, registry), content={
     "nodes": [
       [
         "Element",
@@ -142,7 +142,7 @@ test "include not found" {
     @pug.render_with_registry(pug, Locals::new(), registry),
     content="<html><!-- Include not found: missing.pug --></html>",
   )
-  @json.inspect(@pug.parse_with_registry(pug, registry), content={
+  @json.json_inspect(@pug.parse_with_registry(pug, registry), content={
     "nodes": [
       [
         "Element",
@@ -177,7 +177,7 @@ test "include with locals" {
     @pug.render_with_registry(pug, locals, registry),
     content="<div><p>Hello World</p></div>",
   )
-  @json.inspect(@pug.parse_with_registry(pug, registry), content={
+  @json.json_inspect(@pug.parse_with_registry(pug, registry), content={
     "nodes": [
       [
         "Element",

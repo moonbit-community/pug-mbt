@@ -24,7 +24,7 @@ test "if true condition" {
   let locals = Locals::new()
   locals.set("show", "true")
   inspect(@pug.render_with_locals(pug, locals), content="<p>Visible</p>")
-  @json.inspect(@pug.parse(pug), content={
+  @json.json_inspect(@pug.parse(pug), content={
     "nodes": [
       [
         "Conditional",
@@ -59,7 +59,7 @@ test "if false condition" {
   let locals = Locals::new()
   locals.set("show", "false")
   inspect(@pug.render_with_locals(pug, locals), content="")
-  @json.inspect(@pug.parse(pug), content={
+  @json.json_inspect(@pug.parse(pug), content={
     "nodes": [
       [
         "Conditional",
@@ -96,7 +96,7 @@ test "if-else" {
   let locals = Locals::new()
   locals.set("loggedIn", "false")
   inspect(@pug.render_with_locals(pug, locals), content="<p>Please log in</p>")
-  @json.inspect(@pug.parse(pug), content={
+  @json.json_inspect(@pug.parse(pug), content={
     "nodes": [
       [
         "Conditional",
@@ -150,7 +150,7 @@ test "if-else if-else" {
     @pug.render_with_locals(pug, locals),
     content="<p class=\"yellow\">Pending</p>",
   )
-  @json.inspect(@pug.parse(pug), content={
+  @json.json_inspect(@pug.parse(pug), content={
     "nodes": [
       [
         "Conditional",
@@ -218,7 +218,7 @@ test "unless true" {
   let locals = Locals::new()
   locals.set("hidden", "true")
   inspect(@pug.render_with_locals(pug, locals), content="")
-  @json.inspect(@pug.parse(pug), content={
+  @json.json_inspect(@pug.parse(pug), content={
     "nodes": [
       [
         "Conditional",
@@ -253,7 +253,7 @@ test "unless false" {
   let locals = Locals::new()
   locals.set("hidden", "false")
   inspect(@pug.render_with_locals(pug, locals), content="<p>Shown</p>")
-  @json.inspect(@pug.parse(pug), content={
+  @json.json_inspect(@pug.parse(pug), content={
     "nodes": [
       [
         "Conditional",
@@ -292,7 +292,7 @@ test "nested conditionals" {
   locals.set("user", "true")
   locals.set("user.admin", "true")
   inspect(@pug.render_with_locals(pug, locals), content="<p>Admin Panel</p>")
-  @json.inspect(@pug.parse(pug), content={
+  @json.json_inspect(@pug.parse(pug), content={
     "nodes": [
       [
         "Conditional",
@@ -351,7 +351,7 @@ test "conditional with variable check" {
   let locals = Locals::new()
   locals.set("name", "Alice")
   inspect(@pug.render_with_locals(pug, locals), content="<p>Hello Alice</p>")
-  @json.inspect(@pug.parse(pug), content={
+  @json.json_inspect(@pug.parse(pug), content={
     "nodes": [
       [
         "Conditional",

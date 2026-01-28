@@ -25,7 +25,7 @@ test "simple mixin definition and call" {
     #|    li bar
     #|+list
   inspect(@pug.render(pug), content="<ul><li>foo</li><li>bar</li></ul>")
-  @json.inspect(@pug.parse(pug), content={
+  @json.json_inspect(@pug.parse(pug), content={
     "nodes": [
       [
         "MixinDef",
@@ -87,7 +87,7 @@ test "mixin with argument" {
     @pug.render(pug),
     content="<ul><li class=\"pet\">cat</li><li class=\"pet\">dog</li></ul>",
   )
-  @json.inspect(@pug.parse(pug), content={
+  @json.json_inspect(@pug.parse(pug), content={
     "nodes": [
       [
         "MixinDef",
@@ -144,7 +144,7 @@ test "mixin with multiple arguments" {
     @pug.render(pug),
     content="<a href=\"/home\">Home</a><a href=\"/about\">About</a>",
   )
-  @json.inspect(@pug.parse(pug), content={
+  @json.json_inspect(@pug.parse(pug), content={
     "nodes": [
       [
         "MixinDef",
@@ -199,7 +199,7 @@ test "mixin with block" {
     @pug.render(pug),
     content="<div class=\"article\"><h1>Hello</h1><p>This is the content</p></div>",
   )
-  @json.inspect(@pug.parse(pug), content={
+  @json.json_inspect(@pug.parse(pug), content={
     "nodes": [
       [
         "MixinDef",
@@ -274,7 +274,7 @@ test "mixin with attributes" {
     #|  a(class!=attributes.class, href=href)= name
     #|+link("/foo", "foo")(class="btn")
   inspect(@pug.render(pug), content="<a class=\"btn\" href=\"/foo\">foo</a>")
-  @json.inspect(@pug.parse(pug), content={
+  @json.json_inspect(@pug.parse(pug), content={
     "nodes": [
       [
         "MixinDef",
@@ -324,7 +324,7 @@ test "mixin with default argument" {
     #|+article()
     #|+article("Custom")
   inspect(@pug.render(pug), content="<h1>Default Title</h1><h1>Custom</h1>")
-  @json.inspect(@pug.parse(pug), content={
+  @json.json_inspect(@pug.parse(pug), content={
     "nodes": [
       [
         "MixinDef",
@@ -367,7 +367,7 @@ test "mixin with rest arguments" {
     @pug.render(pug),
     content="<ul id=\"menu\"><li>Home</li><li>About</li><li>Contact</li></ul>",
   )
-  @json.inspect(@pug.parse(pug), content={
+  @json.json_inspect(@pug.parse(pug), content={
     "nodes": [
       [
         "MixinDef",
@@ -440,7 +440,7 @@ test "multiple mixin calls" {
     @pug.render(pug),
     content="<ul><li>First</li><li>Second</li><li>Third</li></ul>",
   )
-  @json.inspect(@pug.parse(pug), content={
+  @json.json_inspect(@pug.parse(pug), content={
     "nodes": [
       [
         "MixinDef",

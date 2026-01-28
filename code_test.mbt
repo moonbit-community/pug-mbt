@@ -22,7 +22,7 @@ test "unbuffered code variable" {
     #|- var greeting = "Hello"
     #|p= greeting
   inspect(@pug.render(pug), content="<p>Hello</p>")
-  @json.inspect(@pug.parse(pug), content={
+  @json.json_inspect(@pug.parse(pug), content={
     "nodes": [
       ["VarAssign", { "name": "", "value": "var greeting = \"Hello\"" }],
       [
@@ -47,7 +47,7 @@ test "buffered code output" {
   let locals = Locals::new()
   locals.set("message", "Hello World")
   inspect(@pug.render_with_locals(pug, locals), content="<p>Hello World</p>")
-  @json.inspect(@pug.parse(pug), content={
+  @json.json_inspect(@pug.parse(pug), content={
     "nodes": [
       [
         "Element",
@@ -74,7 +74,7 @@ test "buffered code escapes html" {
     @pug.render_with_locals(pug, locals),
     content="<p>&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;</p>",
   )
-  @json.inspect(@pug.parse(pug), content={
+  @json.json_inspect(@pug.parse(pug), content={
     "nodes": [
       [
         "Element",
@@ -101,7 +101,7 @@ test "unescaped buffered code" {
     @pug.render_with_locals(pug, locals),
     content="<p><strong>bold</strong></p>",
   )
-  @json.inspect(@pug.parse(pug), content={
+  @json.json_inspect(@pug.parse(pug), content={
     "nodes": [
       [
         "Element",
@@ -128,7 +128,7 @@ test "inline buffered code" {
     @pug.render_with_locals(pug, locals),
     content="<p>The answer is 42</p>",
   )
-  @json.inspect(@pug.parse(pug), content={
+  @json.json_inspect(@pug.parse(pug), content={
     "nodes": [
       [
         "Element",
@@ -152,7 +152,7 @@ test "code with conditional" {
     #|if show
     #|  p Visible
   inspect(@pug.render(pug), content="<p>Visible</p>")
-  @json.inspect(@pug.parse(pug), content={
+  @json.json_inspect(@pug.parse(pug), content={
     "nodes": [
       ["VarAssign", { "name": "", "value": "var show = true" }],
       [
@@ -189,5 +189,5 @@ test "code defining list" {
     #|  each item in list
     #|    li= item
   inspect(@pug.render(pug), content="<ul><li>a</li><li>b</li><li>c</li></ul>")
-  @json.inspect(@pug.parse(pug))
+  @json.json_inspect(@pug.parse(pug))
 }

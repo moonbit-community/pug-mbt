@@ -15,7 +15,7 @@
 ///|
 test "simple tag" {
   inspect(@pug.render("div"), content="<div></div>")
-  @json.inspect(@pug.parse("div"), content={
+  @json.json_inspect(@pug.parse("div"), content={
     "nodes": [
       [
         "Element",
@@ -35,7 +35,7 @@ test "simple tag" {
 ///|
 test "tag with text" {
   inspect(@pug.render("p Hello World"), content="<p>Hello World</p>")
-  @json.inspect(@pug.parse("p Hello World"), content={
+  @json.json_inspect(@pug.parse("p Hello World"), content={
     "nodes": [
       [
         "Element",
@@ -55,7 +55,7 @@ test "tag with text" {
 ///|
 test "tag with id" {
   inspect(@pug.render("div#main"), content="<div id=\"main\"></div>")
-  @json.inspect(@pug.parse("div#main"), content={
+  @json.json_inspect(@pug.parse("div#main"), content={
     "nodes": [
       [
         "Element",
@@ -78,7 +78,7 @@ test "tag with class" {
     @pug.render("div.container"),
     content="<div class=\"container\"></div>",
   )
-  @json.inspect(@pug.parse("div.container"), content={
+  @json.json_inspect(@pug.parse("div.container"), content={
     "nodes": [
       [
         "Element",
@@ -101,7 +101,7 @@ test "tag with multiple classes" {
     @pug.render("div.foo.bar.baz"),
     content="<div class=\"foo bar baz\"></div>",
   )
-  @json.inspect(@pug.parse("div.foo.bar.baz"), content={
+  @json.json_inspect(@pug.parse("div.foo.bar.baz"), content={
     "nodes": [
       [
         "Element",
@@ -124,7 +124,7 @@ test "tag with id and classes" {
     @pug.render("div#main.container.active"),
     content="<div id=\"main\" class=\"container active\"></div>",
   )
-  @json.inspect(@pug.parse("div#main.container.active"), content={
+  @json.json_inspect(@pug.parse("div#main.container.active"), content={
     "nodes": [
       [
         "Element",
@@ -144,7 +144,7 @@ test "tag with id and classes" {
 ///|
 test "implicit div with id" {
   inspect(@pug.render("#main"), content="<div id=\"main\"></div>")
-  @json.inspect(@pug.parse("#main"), content={
+  @json.json_inspect(@pug.parse("#main"), content={
     "nodes": [
       [
         "Element",
@@ -164,7 +164,7 @@ test "implicit div with id" {
 ///|
 test "implicit div with class" {
   inspect(@pug.render(".container"), content="<div class=\"container\"></div>")
-  @json.inspect(@pug.parse(".container"), content={
+  @json.json_inspect(@pug.parse(".container"), content={
     "nodes": [
       [
         "Element",
@@ -187,7 +187,7 @@ test "tag with attributes" {
     @pug.render("a(href=\"https://example.com\") Click me"),
     content="<a href=\"https://example.com\">Click me</a>",
   )
-  @json.inspect(@pug.parse("a(href=\"https://example.com\") Click me"), content={
+  @json.json_inspect(@pug.parse("a(href=\"https://example.com\") Click me"), content={
     "nodes": [
       [
         "Element",
@@ -218,7 +218,7 @@ test "tag with multiple attributes" {
     ),
     content="<input type=\"text\" name=\"username\" placeholder=\"Enter name\">",
   )
-  @json.inspect(
+  @json.json_inspect(
     @pug.parse(
       "input(type=\"text\", name=\"username\", placeholder=\"Enter name\")",
     ),
@@ -251,7 +251,7 @@ test "tag with multiple attributes" {
 ///|
 test "void element" {
   inspect(@pug.render("br"), content="<br>")
-  @json.inspect(@pug.parse("br"), content={
+  @json.json_inspect(@pug.parse("br"), content={
     "nodes": [
       [
         "Element",
@@ -274,7 +274,7 @@ test "img element" {
     @pug.render("img(src=\"photo.jpg\", alt=\"A photo\")"),
     content="<img src=\"photo.jpg\" alt=\"A photo\">",
   )
-  @json.inspect(@pug.parse("img(src=\"photo.jpg\", alt=\"A photo\")"), content={
+  @json.json_inspect(@pug.parse("img(src=\"photo.jpg\", alt=\"A photo\")"), content={
     "nodes": [
       [
         "Element",
@@ -297,7 +297,7 @@ test "img element" {
 ///|
 test "doctype" {
   inspect(@pug.render("doctype html"), content="<!DOCTYPE html>")
-  @json.inspect(@pug.parse("doctype html"), content={
+  @json.json_inspect(@pug.parse("doctype html"), content={
     "nodes": [["Doctype", "html"]],
   })
 }
@@ -308,7 +308,7 @@ test "comment" {
     @pug.render("// This is a comment"),
     content="<!--This is a comment-->",
   )
-  @json.inspect(@pug.parse("// This is a comment"), content={
+  @json.json_inspect(@pug.parse("// This is a comment"), content={
     "nodes": [["Comment", { "text": "This is a comment", "render": true }]],
   })
 }
@@ -320,7 +320,7 @@ test "nested elements" {
     #|  p Hello
     #|  p World
   inspect(@pug.render(pug), content="<div><p>Hello</p><p>World</p></div>")
-  @json.inspect(@pug.parse(pug), content={
+  @json.json_inspect(@pug.parse(pug), content={
     "nodes": [
       [
         "Element",
@@ -372,7 +372,7 @@ test "deeply nested elements" {
     @pug.render(pug),
     content="<html><head><title>My Page</title></head><body><h1>Welcome</h1></body></html>",
   )
-  @json.inspect(@pug.parse(pug), content={
+  @json.json_inspect(@pug.parse(pug), content={
     "nodes": [
       [
         "Element",
@@ -447,7 +447,7 @@ test "pretty print" {
     #|</div>
     #|
   inspect(@pug.render_pretty(pug), content=expected)
-  @json.inspect(@pug.parse(pug), content={
+  @json.json_inspect(@pug.parse(pug), content={
     "nodes": [
       [
         "Element",
@@ -491,7 +491,7 @@ test "full html page" {
     @pug.render(pug),
     content="<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>Example</title></head><body><h1 id=\"title\" class=\"heading\">Welcome</h1><p class=\"intro\">This is a paragraph.</p></body></html>",
   )
-  @json.inspect(@pug.parse(pug), content={
+  @json.json_inspect(@pug.parse(pug), content={
     "nodes": [
       ["Doctype", "html"],
       [
@@ -592,7 +592,7 @@ test "interpolation" {
     @pug.render_with_locals("p Hello #{name}!", locals),
     content="<p>Hello World!</p>",
   )
-  @json.inspect(@pug.parse("p Hello #{name}!"), content={
+  @json.json_inspect(@pug.parse("p Hello #{name}!"), content={
     "nodes": [
       [
         "Element",
@@ -622,7 +622,7 @@ test "multiple interpolations" {
     @pug.render_with_locals("p #{first} #{last}", locals),
     content="<p>John Doe</p>",
   )
-  @json.inspect(@pug.parse("p #{first} #{last}"), content={
+  @json.json_inspect(@pug.parse("p #{first} #{last}"), content={
     "nodes": [
       [
         "Element",
@@ -650,7 +650,7 @@ test "missing interpolation variable" {
     @pug.render_with_locals("p Hello #{name}!", locals),
     content="<p>Hello !</p>",
   )
-  @json.inspect(@pug.parse("p Hello #{name}!"), content={
+  @json.json_inspect(@pug.parse("p Hello #{name}!"), content={
     "nodes": [
       [
         "Element",
@@ -680,7 +680,7 @@ test "compile and render" {
   let locals2 = Locals::new()
   locals2.set("name", "Bob")
   inspect(template.render(locals2), content="<p>Hello Bob!</p>")
-  @json.inspect(@pug.parse("p Hello #{name}!"), content={
+  @json.json_inspect(@pug.parse("p Hello #{name}!"), content={
     "nodes": [
       [
         "Element",
@@ -714,7 +714,7 @@ test "interpolation in nested elements" {
     @pug.render_with_locals(pug, locals),
     content="<div><p>Hello User</p><p>Welcome to MoonBit</p></div>",
   )
-  @json.inspect(@pug.parse(pug), content={
+  @json.json_inspect(@pug.parse(pug), content={
     "nodes": [
       [
         "Element",

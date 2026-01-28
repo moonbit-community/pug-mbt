@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """
-Transform tests to add @json.inspect(parse(...)) alongside render tests.
+Transform tests to add @json.json_inspect(parse(...)) alongside render tests.
 
 Current pattern:
   let html = render("...")
-  @json.inspect(html, content="...")
+  @json.json_inspect(html, content="...")
 
 New pattern:
   inspect(@pug.render("..."), content="...")
-  @json.inspect(@pug.parse("..."))
+  @json.json_inspect(@pug.parse("..."))
 """
 
 import re
@@ -33,7 +33,7 @@ def process_file(filepath: Path) -> bool:
         if m:
             indent, func, args = m.groups()
 
-            # Check next line for @json.inspect(html, content=...)
+            # Check next line for @json.json_inspect(html, content=...)
             if i + 1 < len(lines):
                 next_line = lines[i + 1]
                 m2 = re.match(r'^\s*@json\.inspect\(html,\s*content=(.+)\)\s*$', next_line)
@@ -49,7 +49,7 @@ def process_file(filepath: Path) -> bool:
                         source = args
 
                     result.append(f'{indent}inspect(@pug.{func}({args}), content={content_val})')
-                    result.append(f'{indent}@json.inspect(@pug.parse({source}))')
+                    result.append(f'{indent}@json.json_inspect(@pug.parse({source}))')
                     i += 2
                     changed = True
                     continue
@@ -57,7 +57,7 @@ def process_file(filepath: Path) -> bool:
         # Pattern 2: Multi-line render with pug variable
         # let pug = #|...
         # let html = render(pug)
-        # @json.inspect(html, content=...)
+        # @json.json_inspect(html, content=...)
         if re.match(r'^\s*let\s+pug\s*=\s*$', line):
             # Collect the multiline string
             pug_lines = [line]
@@ -73,7 +73,7 @@ def process_file(filepath: Path) -> bool:
                 if m:
                     indent, func, args = m.groups()
 
-                    # Check for @json.inspect(html, content=...)
+                    # Check for @json.json_inspect(html, content=...)
                     if j + 1 < len(lines):
                         inspect_line = lines[j + 1]
                         m2 = re.match(r'^\s*@json\.inspect\(html,\s*content=(.+)\)\s*$', inspect_line)
@@ -92,14 +92,14 @@ def process_file(filepath: Path) -> bool:
                                 source = args
 
                             result.append(f'{indent}inspect(@pug.{func}({args}), content={content_val})')
-                            result.append(f'{indent}@json.inspect(@pug.parse({source}))')
+                            result.append(f'{indent}@json.json_inspect(@pug.parse({source}))')
                             i = j + 2
                             changed = True
                             continue
 
         # Pattern 3: Multi-line inspect
         # let html = render(...)
-        # @json.inspect(
+        # @json.json_inspect(
         #   html,
         #   content=...,
         # )
@@ -107,7 +107,7 @@ def process_file(filepath: Path) -> bool:
         if m:
             indent, func, args = m.groups()
 
-            if i + 1 < len(lines) and lines[i + 1].strip() == '@json.inspect(':
+            if i + 1 < len(lines) and lines[i + 1].strip() == '@json.json_inspect(':
                 # Collect multi-line inspect
                 j = i + 1
                 inspect_lines = []
@@ -137,7 +137,7 @@ def process_file(filepath: Path) -> bool:
                     result.append(f'{indent}  @pug.{func}({args}),')
                     result.append(f'{indent}  content={content_val},')
                     result.append(f'{indent})')
-                    result.append(f'{indent}@json.inspect(@pug.parse({source}))')
+                    result.append(f'{indent}@json.json_inspect(@pug.parse({source}))')
                     i = j + 1
                     changed = True
                     continue

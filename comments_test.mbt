@@ -22,7 +22,7 @@ test "buffered comment" {
     @pug.render("// This appears in HTML"),
     content="<!--This appears in HTML-->",
   )
-  @json.inspect(@pug.parse("// This appears in HTML"), content={
+  @json.json_inspect(@pug.parse("// This appears in HTML"), content={
     "nodes": [["Comment", { "text": "This appears in HTML", "render": true }]],
   })
 }
@@ -30,7 +30,7 @@ test "buffered comment" {
 ///|
 test "unbuffered comment" {
   inspect(@pug.render("//- This is hidden"), content="")
-  @json.inspect(@pug.parse("//- This is hidden"), content={ "nodes": [] })
+  @json.json_inspect(@pug.parse("//- This is hidden"), content={ "nodes": [] })
 }
 
 ///|
@@ -39,7 +39,7 @@ test "comment with content below" {
     #|// visible comment
     #|p Hello
   inspect(@pug.render(pug), content="<!--visible comment--><p>Hello</p>")
-  @json.inspect(@pug.parse(pug), content={
+  @json.json_inspect(@pug.parse(pug), content={
     "nodes": [
       ["Comment", { "text": "visible comment", "render": true }],
       [
@@ -63,7 +63,7 @@ test "unbuffered comment with content below" {
     #|//- hidden comment
     #|p Hello
   inspect(@pug.render(pug), content="<p>Hello</p>")
-  @json.inspect(@pug.parse(pug), content={
+  @json.json_inspect(@pug.parse(pug), content={
     "nodes": [
       [
         "Element",
@@ -87,7 +87,7 @@ test "block comment buffered" {
     #|  This is a
     #|  multi-line comment
   inspect(@pug.render(pug), content="<!--This is a\nmulti-line comment-->")
-  @json.inspect(@pug.parse(pug), content={
+  @json.json_inspect(@pug.parse(pug), content={
     "nodes": [
       ["Comment", { "text": "This is a\nmulti-line comment", "render": true }],
     ],
@@ -102,7 +102,7 @@ test "block comment unbuffered" {
     #|  is hidden
     #|p Visible
   inspect(@pug.render(pug), content="<p>Visible</p>")
-  @json.inspect(@pug.parse(pug), content={
+  @json.json_inspect(@pug.parse(pug), content={
     "nodes": [
       [
         "Element",
@@ -129,7 +129,7 @@ test "comment in nested structure" {
     @pug.render(pug),
     content="<div><!--comment inside--><p>Content</p></div>",
   )
-  @json.inspect(@pug.parse(pug), content={
+  @json.json_inspect(@pug.parse(pug), content={
     "nodes": [
       [
         "Element",

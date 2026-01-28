@@ -24,7 +24,7 @@ test "escaped interpolation" {
     @pug.render_with_locals("p #{content}", locals),
     content="<p>&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;</p>",
   )
-  @json.inspect(@pug.parse("p #{content}"), content={
+  @json.json_inspect(@pug.parse("p #{content}"), content={
     "nodes": [
       [
         "Element",
@@ -49,7 +49,7 @@ test "unescaped interpolation with !{}" {
     @pug.render_with_locals("p !{content}", locals),
     content="<p><strong>bold</strong></p>",
   )
-  @json.inspect(@pug.parse("p !{content}"), content={
+  @json.json_inspect(@pug.parse("p !{content}"), content={
     "nodes": [
       [
         "Element",
@@ -75,7 +75,7 @@ test "mixed escaped and unescaped" {
     @pug.render_with_locals("p #{safe} !{html}", locals),
     content="<p>Hello <em>World</em></p>",
   )
-  @json.inspect(@pug.parse("p #{safe} !{html}"), content={
+  @json.json_inspect(@pug.parse("p #{safe} !{html}"), content={
     "nodes": [
       [
         "Element",
@@ -102,7 +102,7 @@ test "tag interpolation with #[]" {
     @pug.render("p This is #[strong important] text"),
     content="<p>This is <strong>important</strong> text</p>",
   )
-  @json.inspect(@pug.parse("p This is #[strong important] text"), content={
+  @json.json_inspect(@pug.parse("p This is #[strong important] text"), content={
     "nodes": [
       [
         "Element",
@@ -139,7 +139,7 @@ test "tag interpolation with attributes" {
     @pug.render("p Click #[a(href=\"/\") here] to continue"),
     content="<p>Click <a href=\"/\">here</a> to continue</p>",
   )
-  @json.inspect(@pug.parse("p Click #[a(href=\"/\") here] to continue"), content={
+  @json.json_inspect(@pug.parse("p Click #[a(href=\"/\") here] to continue"), content={
     "nodes": [
       [
         "Element",
@@ -178,7 +178,7 @@ test "nested tag interpolation" {
     @pug.render("p #[strong #[em nested]] content"),
     content="<p><strong><em>nested</em></strong> content</p>",
   )
-  @json.inspect(@pug.parse("p #[strong #[em nested]] content"), content={
+  @json.json_inspect(@pug.parse("p #[strong #[em nested]] content"), content={
     "nodes": [
       [
         "Element",
@@ -229,7 +229,7 @@ test "interpolation in attribute" {
     @pug.render_with_locals("div(id=\"#{id}\", class=\"#{cls}\")", locals),
     content="<div id=\"main\" class=\"active\"></div>",
   )
-  @json.inspect(@pug.parse("div(id=\"#{id}\", class=\"#{cls}\")"), content={
+  @json.json_inspect(@pug.parse("div(id=\"#{id}\", class=\"#{cls}\")"), content={
     "nodes": [
       [
         "Element",
@@ -258,7 +258,7 @@ test "interpolation with method call syntax" {
     @pug.render_with_locals("p Welcome to #{name}!", locals),
     content="<p>Welcome to moonbit!</p>",
   )
-  @json.inspect(@pug.parse("p Welcome to #{name}!"), content={
+  @json.json_inspect(@pug.parse("p Welcome to #{name}!"), content={
     "nodes": [
       [
         "Element",
@@ -287,7 +287,7 @@ test "whitespace around interpolation" {
     @pug.render_with_locals("p Hello #{name} !", locals),
     content="<p>Hello World !</p>",
   )
-  @json.inspect(@pug.parse("p Hello #{name} !"), content={
+  @json.json_inspect(@pug.parse("p Hello #{name} !"), content={
     "nodes": [
       [
         "Element",
