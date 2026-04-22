@@ -110,6 +110,11 @@ pub enum Token {
 } derive(Debug, Eq)
 
 ///|
+pub impl Show for Token with output(self, logger) {
+  logger.write_object(self.to_repr())
+}
+
+///|
 fn is_alpha(c : Char) -> Bool {
   (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
 }

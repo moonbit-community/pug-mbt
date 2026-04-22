@@ -21,6 +21,11 @@ pub struct Attribute {
 } derive(Debug, Eq, ToJson)
 
 ///|
+pub impl Show for Attribute with output(self, logger) {
+  logger.write_object(self.to_repr())
+}
+
+///|
 /// Locals map for template interpolation
 pub struct Locals(Map[String, String])
 
@@ -194,6 +199,11 @@ pub enum Node {
   /// Filter statement (:filter_name content)
   Filter(name~ : String, content~ : String)
 } derive(Debug, Eq, ToJson)
+
+///|
+pub impl Show for Node with output(self, logger) {
+  logger.write_object(self.to_repr())
+}
 
 ///|
 /// A Pug document is a list of nodes
