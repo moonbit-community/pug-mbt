@@ -24,7 +24,7 @@ pub fn locals_to_json(locals : Locals) -> String {
   buf.write_string("{")
   let mut first = true
   for k, v in locals.0 {
-    if not(first) {
+    if !(first) {
       buf.write_string(",")
     }
     first = false
