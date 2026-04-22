@@ -484,7 +484,7 @@ fn render_node_with_mixins(
       buf.write_string(newline)
       // Handle post-increment
       if is_post_increment {
-        let parse_result : Result[Int, _] = try? @strconv.parse_int(value)
+        let parse_result : Result[Int, _] = try? @string.parse_int(value)
         match parse_result {
           Ok(n) => locals.set(expr, (n + 1).to_string())
           Err(_) => ()
@@ -1214,8 +1214,8 @@ fn evaluate_while_condition(condition : String, locals : Locals) -> Bool {
       let rhs_str = buf.to_string().trim(chars=" \t").to_string()
       match locals.get(var_name) {
         Some(v) => {
-          let rhs_result = try? @strconv.parse_int(rhs_str)
-          let lhs_result = try? @strconv.parse_int(v)
+          let rhs_result = try? @string.parse_int(rhs_str)
+          let lhs_result = try? @string.parse_int(v)
           match (lhs_result, rhs_result) {
             (Ok(lhs_num), Ok(rhs_num)) => return lhs_num < rhs_num
             _ => return false
