@@ -184,11 +184,11 @@ fn get_output_path(
     j += 1
   }
   if last_slash >= 0 {
-    base = try! input_path[last_slash + 1:].to_string()
+    base = input_path[last_slash + 1:].to_string()
   }
   // Remove .pug extension if present
   if base.has_suffix(".pug") {
-    base = try! base[0:base.length() - 4].to_string()
+    base = base[0:base.length() - 4].to_string()
   }
   // Combine with output directory
   if out_dir.is_empty() {

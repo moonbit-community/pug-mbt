@@ -464,7 +464,7 @@ fn render_node_with_mixins(
     Interpolation(name) => {
       // Check for post-increment (n++)
       let (expr, is_post_increment) = if name.has_suffix("++") {
-        (try! name[0:name.length() - 2].to_string(), true)
+        (name[0:name.length() - 2].to_string(), true)
       } else {
         (name, false)
       }
@@ -665,7 +665,7 @@ fn render_node_with_mixins(
             // Check if this is a rest parameter
             if param_name.has_prefix("...") {
               // Rest parameter - collect remaining args as JSON array
-              let rest_name = try! param_name[3:].to_string()
+              let rest_name = param_name[3:].to_string()
               let rest_args : Array[String] = []
               while arg_idx < args.length() {
                 rest_args.push(args[arg_idx])
@@ -1169,7 +1169,7 @@ fn evaluate_condition(condition : String, locals : Locals) -> Bool {
       expected = buf.to_string().trim(chars=" \t").to_string()
       // Remove quotes from expected value
       if expected.has_prefix("\"") && expected.has_suffix("\"") {
-        expected = try! expected[1:expected.length() - 1].to_string()
+        expected = expected[1:expected.length() - 1].to_string()
       }
       match locals.get(var_name) {
         Some(v) => return v == expected
