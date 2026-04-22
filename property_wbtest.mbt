@@ -168,7 +168,7 @@ fn render_attributes(attrs : Array[Attribute]) -> String {
     sb.write_char('(')
     let mut first = true
     for attr in attrs {
-      if not(first) {
+      if !(first) {
         sb.write_string(", ")
       }
       first = false
@@ -282,7 +282,7 @@ test "property tokenizer termination" {
   let prop = @quickcheck.forall(gen_document(), (s : Document) => {
     let pug_src = to_pug(s)
     let tokenized = tokenize(pug_src)
-    not(tokenized.is_empty()) && tokenized.last() is Some(EOF)
+    !(tokenized.is_empty()) && tokenized.last() is Some(EOF)
   })
   @quickcheck.quick_check(prop, max_success=200, max_size=200)
 }

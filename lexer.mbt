@@ -267,16 +267,16 @@ fn Lexer::read_attr_value(self : Lexer) -> String {
       let mut in_double_quote = false
       while self.pos < self.chars.length() {
         match self.peek() {
-          Some(')') | Some(',') if not(in_single_quote) && not(in_double_quote) =>
+          Some(')') | Some(',') if !(in_single_quote) && !(in_double_quote) =>
             break
-          Some('\'') if not(in_double_quote) => {
-            in_single_quote = not(in_single_quote)
+          Some('\'') if !(in_double_quote) => {
+            in_single_quote = !(in_single_quote)
             buf.write_char('\'')
             let _ = self.advance()
 
           }
-          Some('"') if not(in_single_quote) => {
-            in_double_quote = not(in_double_quote)
+          Some('"') if !(in_single_quote) => {
+            in_double_quote = !(in_double_quote)
             buf.write_char('"')
             let _ = self.advance()
 
@@ -1468,7 +1468,7 @@ fn Lexer::read_block_text(self : Lexer, base_indent : Int) -> String {
     }
     // If line is empty (just newline), include it but continue
     if self.peek() is Some('\n') {
-      if not(first) {
+      if !(first) {
         buf.write_string("\n")
       }
       let _ = self.advance()
@@ -1480,7 +1480,7 @@ fn Lexer::read_block_text(self : Lexer, base_indent : Int) -> String {
       break
     }
     // Add the content (minus the extra indent)
-    if not(first) {
+    if !(first) {
       buf.write_string("\n")
     }
     first = false
@@ -1564,7 +1564,7 @@ pub fn Lexer::tokenize(self : Lexer) -> Array[Token] {
       )
     }
   }
-  if all_tokens.is_empty() || not(all_tokens.last() is Some(EOF)) {
+  if all_tokens.is_empty() || !(all_tokens.last() is Some(EOF)) {
     all_tokens.push(EOF)
   }
   all_tokens

@@ -99,7 +99,7 @@ fn is_numeric_string(s : String) -> Bool {
     let c = chars[i]
     if c >= '0' && c <= '9' {
       i += 1
-    } else if c == '.' && not(has_dot) {
+    } else if c == '.' && !(has_dot) {
       has_dot = true
       i += 1
     } else {
@@ -117,7 +117,7 @@ pub fn locals_to_json(locals : Locals) -> String {
   buf.write_string("{")
   let mut first = true
   for k, v in locals.0 {
-    if not(first) {
+    if !(first) {
       buf.write_string(",")
     }
     first = false

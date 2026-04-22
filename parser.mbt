@@ -185,7 +185,7 @@ fn Parser::parse_inline_element(self : Parser) -> Node? {
   }
 
   // If no content at all, return None
-  if not(has_explicit_tag) &&
+  if !(has_explicit_tag) &&
     id == "" &&
     classes.is_empty() &&
     attributes.is_empty() &&
@@ -506,7 +506,7 @@ fn Parser::parse_element(self : Parser) -> Node? {
   }
 
   // If we have no explicit tag, id, class, or attributes, this might be text-only or empty
-  if not(has_explicit_tag) &&
+  if !(has_explicit_tag) &&
     id == "" &&
     classes.is_empty() &&
     attributes.is_empty() {
@@ -594,7 +594,7 @@ fn build_tree(lines : Array[ParsedLine]) -> Array[Node] {
       if parent_indent >= indent {
         let (popped_indent, completed) = stack.pop().unwrap()
         // Track completed conditionals for else linking
-        if is_conditional(completed) && not(is_else_marker(completed)) {
+        if is_conditional(completed) && !(is_else_marker(completed)) {
           recent_conditionals[popped_indent] = completed
         }
         // Track completed Each nodes for else linking

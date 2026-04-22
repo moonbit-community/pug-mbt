@@ -73,7 +73,7 @@ pub fn Locals::set_object(
   buf.write_string("{")
   let mut first = true
   for k, v in obj {
-    if not(first) {
+    if !(first) {
       buf.write_string(",")
     }
     first = false
@@ -269,7 +269,7 @@ pub fn TemplateRegistry::ensure_loaded(
   self : TemplateRegistry,
   path : String,
 ) -> Unit raise @fs.IOError {
-  if not(self.templates.contains(path)) {
+  if !(self.templates.contains(path)) {
     self.load_file(path)
   }
 }
