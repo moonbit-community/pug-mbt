@@ -2,6 +2,7 @@
 package "Milky2018/pug"
 
 import {
+  "moonbitlang/core/debug",
   "moonbitlang/x/fs",
 }
 
@@ -45,10 +46,8 @@ pub struct Attribute {
   name : String
   value : String?
   unescaped : Bool
-}
-pub impl Eq for Attribute
+} derive(Eq, ToJson, @debug.Debug)
 pub impl Show for Attribute
-pub impl ToJson for Attribute
 
 pub struct CompiledTemplate {
   doc : Document
@@ -58,7 +57,7 @@ pub fn CompiledTemplate::render_with_options(Self, Locals, RenderOptions) -> Str
 
 pub struct Document {
   nodes : Array[Node]
-}
+} derive(ToJson, @debug.Debug)
 pub fn Document::iter(Self) -> Iter[Node]
 pub fn Document::new() -> Self
 pub fn Document::push(Self, Node) -> Unit
@@ -67,7 +66,7 @@ pub fn Document::render_with_locals(Self, Locals, options~ : RenderOptions) -> S
 pub fn Document::render_with_registry(Self, Locals, TemplateRegistry, options~ : RenderOptions) -> String
 pub fn Document::to_html(Self) -> String
 pub fn Document::to_pretty_html(Self) -> String
-pub impl ToJson for Document
+pub impl Show for Document
 
 type Lexer
 pub fn Lexer::new(String) -> Self
@@ -76,8 +75,6 @@ pub fn Lexer::tokenize_line(Self) -> Array[Token]
 
 pub struct Locals(Map[String, String])
 pub fn Locals::get(Self, String) -> String?
-#deprecated
-pub fn Locals::inner(Self) -> Map[String, String]
 pub fn Locals::new() -> Self
 pub fn Locals::set(Self, String, String) -> Unit
 pub fn Locals::set_array(Self, String, Array[String]) -> Unit
@@ -106,10 +103,8 @@ pub enum Node {
   IncludeFiltered(filter~ : String, path~ : String)
   Extends(path~ : String)
   Filter(name~ : String, content~ : String)
-}
-pub impl Eq for Node
+} derive(Eq, ToJson, @debug.Debug)
 pub impl Show for Node
-pub impl ToJson for Node
 
 type Parser
 pub fn Parser::new(Array[Token]) -> Self
@@ -179,8 +174,7 @@ pub enum Token {
   Filter(String, String)
   SelfClose
   EOF
-}
-pub impl Eq for Token
+} derive(Eq, @debug.Debug)
 pub impl Show for Token
 
 // Type aliases
