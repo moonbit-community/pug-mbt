@@ -3,7 +3,9 @@
     "moonbitlang/x/fs",
     "moonbitlang/core/abort",
     "moonbitlang/core/string",
-    "moonbitlang/core/json",
+    "moonbitlang/core/json"
+  ],
+  "wbtest-import": [
     "moonbitlang/quickcheck"
   ],
   "targets": {
