@@ -116,7 +116,7 @@ fn parse_args(args : Array[String]) -> Options {
       if i < args.length() {
         opts.extension = args[i]
       }
-    } else if !(arg.has_prefix("-")) {
+    } else if !arg.has_prefix("-") {
       opts.files.push(arg)
     } else {
       log_error("Unknown option: \{arg}")
@@ -222,7 +222,7 @@ fn process_file(path : String, opts : Options, locals : @pug.Locals) -> Unit {
         @sys.exit(1)
       }
     }
-    if !(opts.silent) {
+    if !opts.silent {
       log_info("  rendered \{path} -> \{out_path}")
     }
   }
@@ -259,9 +259,9 @@ fn render_pretty_html(html : String) -> String {
         buf.write_char(chars[i]) // write >
         // Check if opening tag (not self-closing, not closing)
         let tag_content = buf.to_string()
-        if !(tag_content.has_suffix("/>")) &&
-          !(tag_content.contains("</")) &&
-          !(is_void_element(tag_content)) {
+        if !tag_content.has_suffix("/>") &&
+          !tag_content.contains("</") &&
+          !is_void_element(tag_content) {
           indent += 1
         }
       }
@@ -341,9 +341,9 @@ fn main {
     return
   }
   // Create output directory if needed
-  if !(opts.out_dir.is_empty()) {
+  if !opts.out_dir.is_empty() {
     let exists = @fs.path_exists(opts.out_dir)
-    if !(exists) {
+    if !exists {
       @fs.create_dir(opts.out_dir) catch {
         e => {
           log_error("Error creating output directory: \{e}")

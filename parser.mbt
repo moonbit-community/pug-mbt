@@ -48,7 +48,6 @@ fn Parser::advance(self : Parser) -> Token? {
 fn Parser::skip_newlines(self : Parser) -> Unit {
   while self.peek() is Some(Newline) {
     let _ = self.advance()
-
   }
 }
 
@@ -87,7 +86,6 @@ fn Parser::parse_inline_element(self : Parser) -> Node? {
     tag = t
     has_explicit_tag = true
     let _ = self.advance()
-
   }
 
   // Parse id and classes
@@ -96,12 +94,10 @@ fn Parser::parse_inline_element(self : Parser) -> Node? {
       Some(Id(i)) => {
         id = i
         let _ = self.advance()
-
       }
       Some(Class(c)) => {
         classes.push(c)
         let _ = self.advance()
-
       }
       _ => break
     }
@@ -122,14 +118,12 @@ fn Parser::parse_inline_element(self : Parser) -> Node? {
             if self.peek() is Some(AttrValue(v)) {
               value = Some(v)
               let _ = self.advance()
-
             }
           } else if self.peek() is Some(Equals) {
             let _ = self.advance()
             if self.peek() is Some(AttrValue(v)) {
               value = Some(v)
               let _ = self.advance()
-
             }
           }
           attributes.push({ name, value, unescaped })
@@ -160,17 +154,14 @@ fn Parser::parse_inline_element(self : Parser) -> Node? {
       Some(Text(t)) => {
         children.push(Text(t))
         let _ = self.advance()
-
       }
       Some(Token::Interpolation(name)) => {
         children.push(Node::Interpolation(name))
         let _ = self.advance()
-
       }
       Some(Token::UnescapedInterpolation(name)) => {
         children.push(Node::UnescapedInterpolation(name))
         let _ = self.advance()
-
       }
       Some(Token::TagInterpolation(content)) => {
         match parse_tag_interpolation(content) {
@@ -178,14 +169,13 @@ fn Parser::parse_inline_element(self : Parser) -> Node? {
           None => ()
         }
         let _ = self.advance()
-
       }
       _ => break
     }
   }
 
   // If no content at all, return None
-  if !(has_explicit_tag) &&
+  if !has_explicit_tag &&
     id == "" &&
     classes.is_empty() &&
     attributes.is_empty() &&
@@ -353,7 +343,6 @@ fn Parser::parse_element(self : Parser) -> Node? {
     tag = t
     has_explicit_tag = true
     let _ = self.advance()
-
   }
 
   // Parse id and classes
@@ -362,12 +351,10 @@ fn Parser::parse_element(self : Parser) -> Node? {
       Some(Id(i)) => {
         id = i
         let _ = self.advance()
-
       }
       Some(Class(c)) => {
         classes.push(c)
         let _ = self.advance()
-
       }
       _ => break
     }
@@ -392,14 +379,12 @@ fn Parser::parse_element(self : Parser) -> Node? {
             if self.peek() is Some(AttrValue(v)) {
               value = Some(v)
               let _ = self.advance()
-
             }
           } else if self.peek() is Some(Equals) {
             let _ = self.advance()
             if self.peek() is Some(AttrValue(v)) {
               value = Some(v) // Has explicit value (even if empty)
               let _ = self.advance()
-
             }
           }
           if name != "class" && seen_attrs.contains(name) {
@@ -446,29 +431,24 @@ fn Parser::parse_element(self : Parser) -> Node? {
       Some(Text(t)) => {
         children.push(Text(t))
         let _ = self.advance()
-
       }
       Some(Token::Interpolation(name)) => {
         children.push(Node::Interpolation(name))
         let _ = self.advance()
-
       }
       Some(Token::UnescapedInterpolation(name)) => {
         children.push(Node::UnescapedInterpolation(name))
         let _ = self.advance()
-
       }
       Some(Token::BufferedOutput(variable)) => {
         // Buffered output = variable outputs the variable value as content (escaped)
         children.push(Node::Interpolation(variable))
         let _ = self.advance()
-
       }
       Some(Token::UnescapedBufferedOutput(variable)) => {
         // Unescaped buffered output != variable outputs the variable value as content (raw)
         children.push(Node::UnescapedInterpolation(variable))
         let _ = self.advance()
-
       }
       Some(Token::TagInterpolation(content)) => {
         match parse_tag_interpolation(content) {
@@ -476,7 +456,6 @@ fn Parser::parse_element(self : Parser) -> Node? {
           None => ()
         }
         let _ = self.advance()
-
       }
       _ => break
     }
@@ -492,7 +471,6 @@ fn Parser::parse_element(self : Parser) -> Node? {
   match self.peek() {
     Some(Newline) | Some(EOF) => {
       let _ = self.advance()
-
     }
     _ => ()
   }
@@ -506,7 +484,7 @@ fn Parser::parse_element(self : Parser) -> Node? {
   }
 
   // If we have no explicit tag, id, class, or attributes, this might be text-only or empty
-  if !(has_explicit_tag) &&
+  if !has_explicit_tag &&
     id == "" &&
     classes.is_empty() &&
     attributes.is_empty() {
@@ -594,7 +572,7 @@ fn build_tree(lines : Array[ParsedLine]) -> Array[Node] {
       if parent_indent >= indent {
         let (popped_indent, completed) = stack.pop().unwrap()
         // Track completed conditionals for else linking
-        if is_conditional(completed) && !(is_else_marker(completed)) {
+        if is_conditional(completed) && !is_else_marker(completed) {
           recent_conditionals[popped_indent] = completed
         }
         // Track completed Each nodes for else linking

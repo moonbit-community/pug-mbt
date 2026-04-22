@@ -37,7 +37,6 @@ test "usage example" {
 
   // Render to pretty-printed HTML
   let _pretty_html = @pug.render_pretty(pug)
-
 }
 ```
 

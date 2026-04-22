@@ -59,15 +59,15 @@ fn parse_ternary(expr : String) -> (String, String, String)? {
   let mut in_double_quote = false
   // Find ? and : positions, respecting quotes
   for i, c in chars {
-    if c == '\'' && !(in_double_quote) {
-      in_single_quote = !(in_single_quote)
-    } else if c == '"' && !(in_single_quote) {
-      in_double_quote = !(in_double_quote)
-    } else if c == '?' && !(in_single_quote) && !(in_double_quote) {
+    if c == '\'' && !in_double_quote {
+      in_single_quote = !in_single_quote
+    } else if c == '"' && !in_single_quote {
+      in_double_quote = !in_double_quote
+    } else if c == '?' && !in_single_quote && !in_double_quote {
       question_pos = i
     } else if c == ':' &&
-      !(in_single_quote) &&
-      !(in_double_quote) &&
+      !in_single_quote &&
+      !in_double_quote &&
       question_pos >= 0 {
       colon_pos = i
       break // Only find the first : after ?
@@ -140,13 +140,13 @@ fn split_on_plus(s : String) -> Array[String] {
   let mut i = 0
   while i < chars.length() {
     let c = chars[i]
-    if c == '\'' && !(in_double_quote) {
-      in_single_quote = !(in_single_quote)
+    if c == '\'' && !in_double_quote {
+      in_single_quote = !in_single_quote
       buf.write_char(c)
-    } else if c == '"' && !(in_single_quote) {
-      in_double_quote = !(in_double_quote)
+    } else if c == '"' && !in_single_quote {
+      in_double_quote = !in_double_quote
       buf.write_char(c)
-    } else if c == '+' && !(in_single_quote) && !(in_double_quote) {
+    } else if c == '+' && !in_single_quote && !in_double_quote {
       parts.push(buf.to_string())
       buf.reset()
     } else {
@@ -234,7 +234,7 @@ fn markdown_to_html(md : String) -> String {
       buf.write_string(trimmed[4:].to_string())
       buf.write_string("</h3>")
     } else {
-      if !(in_paragraph) {
+      if !in_paragraph {
         buf.write_string("<p>")
         in_paragraph = true
       } else {
