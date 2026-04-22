@@ -107,7 +107,7 @@ pub enum Token {
   SelfClose
   /// End of input
   EOF
-} derive(Show, Eq)
+} derive(Debug, Eq)
 
 ///|
 fn is_alpha(c : Char) -> Bool {
