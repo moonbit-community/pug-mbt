@@ -78,7 +78,7 @@ pub fn exec_js_statement(stmt : String, locals : Locals) -> Unit {
   // Try to parse simple "var name = value" pattern
   let trimmed = stmt.trim_start(chars=" \t").to_string()
   if trimmed.has_prefix("var ") {
-    let rest = try! trimmed[4:].to_string()
+    let rest = trimmed[4:].to_string()
     let rest_trimmed = rest.trim_start(chars=" \t").to_string()
     // Find variable name
     let mut name_end = 0
@@ -89,12 +89,12 @@ pub fn exec_js_statement(stmt : String, locals : Locals) -> Unit {
       name_end += 1
     }
     if name_end > 0 {
-      let name = try! rest_trimmed[0:name_end].to_string()
+      let name = rest_trimmed[0:name_end].to_string()
       // Find = sign
-      let after_name = try! rest_trimmed[name_end:].to_string()
+      let after_name = rest_trimmed[name_end:].to_string()
       let eq_trimmed = after_name.trim_start(chars=" \t").to_string()
       if eq_trimmed.has_prefix("=") {
-        let value_part = try! eq_trimmed[1:].to_string()
+        let value_part = eq_trimmed[1:].to_string()
         let value_trimmed = value_part.trim_start(chars=" \t").to_string()
         // Parse value
         let value = if value_trimmed.has_prefix("\"") {
@@ -112,7 +112,7 @@ pub fn exec_js_statement(stmt : String, locals : Locals) -> Unit {
             }
             end += 1
           }
-          try! value_trimmed[0:end].to_string()
+          value_trimmed[0:end].to_string()
         }
         locals.set(name, value)
         return
