@@ -192,7 +192,6 @@ fn Lexer::advance(self : Lexer) -> Char? {
 fn Lexer::skip_while(self : Lexer, pred : (Char) -> Bool) -> Unit {
   while self.peek() is Some(c) && pred(c) {
     let _ = self.advance()
-
   }
 }
 
@@ -202,7 +201,6 @@ fn Lexer::take_while(self : Lexer, pred : (Char) -> Bool) -> String {
   while self.peek() is Some(c) && pred(c) {
     buf.write_char(c)
     let _ = self.advance()
-
   }
   buf.to_string()
 }
@@ -231,11 +229,9 @@ fn Lexer::read_indent(self : Lexer) -> Int {
     if c == ' ' {
       count += 1
       let _ = self.advance()
-
     } else if c == '\t' {
       count += 2 // treat tab as 2 spaces
       let _ = self.advance()
-
     } else {
       break
     }
@@ -272,24 +268,20 @@ fn Lexer::read_attr_value(self : Lexer) -> String {
       let mut in_double_quote = false
       while self.pos < self.chars.length() {
         match self.peek() {
-          Some(')') | Some(',') if !(in_single_quote) && !(in_double_quote) =>
-            break
-          Some('\'') if !(in_double_quote) => {
-            in_single_quote = !(in_single_quote)
+          Some(')') | Some(',') if !in_single_quote && !in_double_quote => break
+          Some('\'') if !in_double_quote => {
+            in_single_quote = !in_single_quote
             buf.write_char('\'')
             let _ = self.advance()
-
           }
-          Some('"') if !(in_single_quote) => {
-            in_double_quote = !(in_double_quote)
+          Some('"') if !in_single_quote => {
+            in_double_quote = !in_double_quote
             buf.write_char('"')
             let _ = self.advance()
-
           }
           Some(c) => {
             buf.write_char(c)
             let _ = self.advance()
-
           }
           None => break
         }
@@ -319,7 +311,6 @@ fn Lexer::starts_with(self : Lexer, s : String) -> Bool {
 fn Lexer::skip_n(self : Lexer, n : Int) -> Unit {
   for _ in 0..<n {
     let _ = self.advance()
-
   }
 }
 
@@ -352,7 +343,6 @@ fn Lexer::read_tag_interpolation(self : Lexer) -> String {
         depth += 1
         buf.write_char('[')
         let _ = self.advance()
-
       }
       Some(']') => {
         depth -= 1
@@ -360,13 +350,11 @@ fn Lexer::read_tag_interpolation(self : Lexer) -> String {
           buf.write_char(']')
         }
         let _ = self.advance()
-
       }
       Some('\n') => break // Don't cross line boundaries
       Some(c) => {
         buf.write_char(c)
         let _ = self.advance()
-
       }
       None => break
     }
@@ -670,7 +658,6 @@ fn Lexer::parse_text_with_interpolations(
       buf.write_char(c)
       buf_non_empty = true
       let _ = self.advance()
-
     }
   }
   // Flush remaining text
@@ -713,7 +700,6 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
     // Skip optional space after |
     if self.peek() is Some(' ') {
       let _ = self.advance()
-
     }
     let text = self.read_line_text()
     tokens.push(PipedText(text))
@@ -921,17 +907,14 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
     while self.peek() is Some(c) && is_tag_char(c) {
       name_buf.write_char(c)
       let _ = self.advance()
-
     }
     let filter_name = name_buf.to_string()
     // Skip to end of line
     while self.peek() is Some(c) && c != '\n' {
       let _ = self.advance()
-
     }
     if self.peek() is Some('\n') {
       let _ = self.advance()
-
     }
     // Read indented content (indentation level should be greater than current)
     let content_buf = StringBuilder::new()
@@ -944,13 +927,11 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
         line_indent += 1
         indent_chars += 1
         let _ = self.advance()
-
       }
       while self.peek() is Some('\t') {
         line_indent += 2
         indent_chars += 1
         let _ = self.advance()
-
       }
       // If less indented or at same level, we're done with filter content
       if line_indent <= base_indent &&
@@ -978,7 +959,6 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
       while self.peek() is Some(c) && c != '\n' {
         line_buf.write_char(c)
         let _ = self.advance()
-
       }
       if content_buf.to_string().length() > 0 {
         content_buf.write_string("\n")
@@ -986,7 +966,6 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
       content_buf.write_string(line_buf.to_string())
       if self.peek() is Some('\n') {
         let _ = self.advance()
-
       }
     }
     tokens.push(Filter(filter_name, content_buf.to_string()))
@@ -1065,7 +1044,6 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
       tokens.push(BlockExpand)
       if self.peek() is Some(' ') {
         let _ = self.advance()
-
       }
       // Parse inline element after block expansion (same as regular element handling)
       match self.peek() {
@@ -1119,7 +1097,6 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
       tokens.push(BlockExpand)
       if self.peek() is Some(' ') {
         let _ = self.advance()
-
       }
       // Parse inline element after block expansion
       match self.peek() {
@@ -1273,7 +1250,6 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
     // Skip optional space after :
     if self.peek() is Some(' ') {
       let _ = self.advance()
-
     }
     // Continue parsing rest of line as nested element
     // Parse tag name (optional - default is div)
@@ -1388,7 +1364,6 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
     // Skip optional space after !=
     if self.peek() is Some(' ') {
       let _ = self.advance()
-
     }
     let variable = self.read_line_text().trim(chars=" \t").to_string()
     tokens.push(UnescapedBufferedOutput(variable))
@@ -1405,7 +1380,6 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
     // Skip optional space after =
     if self.peek() is Some(' ') {
       let _ = self.advance()
-
     }
     let variable = self.read_line_text().trim(chars=" \t").to_string()
     tokens.push(BufferedOutput(variable))
@@ -1469,11 +1443,10 @@ fn Lexer::read_block_text(self : Lexer, base_indent : Int) -> String {
         line_indent += 2
       }
       let _ = self.advance()
-
     }
     // If line is empty (just newline), include it but continue
     if self.peek() is Some('\n') {
-      if !(first) {
+      if !first {
         buf.write_string("\n")
       }
       let _ = self.advance()
@@ -1485,7 +1458,7 @@ fn Lexer::read_block_text(self : Lexer, base_indent : Int) -> String {
       break
     }
     // Add the content (minus the extra indent)
-    if !(first) {
+    if !first {
       buf.write_string("\n")
     }
     first = false
@@ -1499,7 +1472,6 @@ fn Lexer::read_block_text(self : Lexer, base_indent : Int) -> String {
     // Consume newline
     if self.peek() is Some('\n') {
       let _ = self.advance()
-
     }
   }
   buf.to_string()

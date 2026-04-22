@@ -219,22 +219,18 @@ fn is_simple_identifier(s : String) -> Bool {
   let chars = trimmed.to_array()
   // First char must be letter or underscore
   let first = chars[0]
-  if !(
-      (first >= 'a' && first <= 'z') ||
-      (first >= 'A' && first <= 'Z') ||
-      first == '_',
-    ) {
+  if !((first >= 'a' && first <= 'z') ||
+    (first >= 'A' && first <= 'Z') ||
+    first == '_') {
     return false
   }
   // Rest must be alphanumeric or underscore
   for i in 1..<chars.length() {
     let c = chars[i]
-    if !(
-        (c >= 'a' && c <= 'z') ||
-        (c >= 'A' && c <= 'Z') ||
-        (c >= '0' && c <= '9') ||
-        c == '_',
-      ) {
+    if !((c >= 'a' && c <= 'z') ||
+      (c >= 'A' && c <= 'Z') ||
+      (c >= '0' && c <= '9') ||
+      c == '_') {
       return false
     }
   }
@@ -300,7 +296,7 @@ fn needs_js_eval(expr : String) -> Bool {
     i += 1
   }
   // Check for array access: identifier[
-  if expr.contains("[") && !(expr.has_prefix("[")) {
+  if expr.contains("[") && !expr.has_prefix("[") {
     return true
   }
   false
@@ -541,7 +537,7 @@ fn render_node_with_mixins(
           }
         }
       }
-      if !(matched) {
+      if !matched {
         // No match found, render default
         for child in default {
           render_node_with_mixins(
@@ -695,7 +691,7 @@ fn render_node_with_mixins(
       let cond_result = evaluate_condition(condition, locals)
       // For unless, invert the result
       let should_render_true = if is_unless {
-        !(cond_result)
+        !cond_result
       } else {
         cond_result
       }
@@ -835,11 +831,7 @@ fn render_node_with_mixins(
         match attr.value {
           Some(v) => {
             let raw = eval_attr_value_raw(v, locals)
-            let processed = if !(attr.unescaped) {
-              escape_html(raw)
-            } else {
-              raw
-            }
+            let processed = if !attr.unescaped { escape_html(raw) } else { raw }
             buf.write_string("=\"")
             buf.write_string(processed)
             buf.write_string("\"")
@@ -1126,7 +1118,7 @@ fn evaluate_condition(condition : String, locals : Locals) -> Bool {
   if condition.contains("&&") {
     let parts = split_on_operator(condition, "&&")
     for part in parts {
-      if !(evaluate_condition(part, locals)) {
+      if !evaluate_condition(part, locals) {
         return false
       }
     }
@@ -1190,7 +1182,7 @@ fn evaluate_condition(condition : String, locals : Locals) -> Bool {
 fn evaluate_while_condition(condition : String, locals : Locals) -> Bool {
   let cond = condition.trim(chars=" \t").to_string()
   // Handle < comparison: var < number
-  if cond.contains("<") && !(cond.contains("<=")) {
+  if cond.contains("<") && !cond.contains("<=") {
     let parts = cond.to_array()
     let buf = StringBuilder::new()
     let mut found_op = false
@@ -1519,11 +1511,7 @@ fn render_node_with_registry(
         match attr.value {
           Some(v) => {
             let raw = eval_attr_value_raw(v, locals)
-            let processed = if !(attr.unescaped) {
-              escape_html(raw)
-            } else {
-              raw
-            }
+            let processed = if !attr.unescaped { escape_html(raw) } else { raw }
             buf.write_string("=\"")
             buf.write_string(processed)
             buf.write_string("\"")
@@ -1746,7 +1734,6 @@ fn normalize_path(path : String) -> String {
     if s == ".." {
       if parts.length() > 0 && parts[parts.length() - 1] != ".." {
         let _ = parts.pop()
-
       } else {
         parts.push("..")
       }

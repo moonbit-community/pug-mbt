@@ -40,7 +40,6 @@ test "lexer terminates on a set of punctuation-only inputs" {
   ]
   for s in samples {
     let _ = @pug.parse(s)
-
   }
 }
 

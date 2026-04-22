@@ -1,0 +1,21 @@
+import {
+  "moonbitlang/x/fs",
+  "moonbitlang/core/abort",
+  "moonbitlang/core/string",
+  "moonbitlang/core/json",
+}
+
+import {
+  "moonbitlang/quickcheck",
+} for "wbtest"
+
+options(
+  targets: {
+    "interpolation_js_test.mbt": [ "js" ],
+    "js_eval.mbt": [ "js" ],
+    "js_eval_stub.mbt": [ "not", "js" ],
+    "js_test.mbt": [ "js" ],
+    "js_wbtest.mbt": [ "js" ],
+    "pugjs_generated_test.mbt": [ "js" ],
+  },
+)
