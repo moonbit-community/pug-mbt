@@ -203,7 +203,7 @@ fn markdown_to_html(md : String) -> String {
   let lines = md.split("\n")
   let mut in_paragraph = false
   for line in lines {
-    let trimmed = line.to_string()
+    let trimmed = line.to_owned()
     if trimmed.length() == 0 {
       if in_paragraph {
         buf.write_string("</p>")
@@ -215,7 +215,7 @@ fn markdown_to_html(md : String) -> String {
         in_paragraph = false
       }
       buf.write_string("<h1>")
-      buf.write_string(trimmed[2:].to_string())
+      buf.write_string(trimmed[2:].to_owned())
       buf.write_string("</h1>")
     } else if trimmed.has_prefix("## ") {
       if in_paragraph {
@@ -223,7 +223,7 @@ fn markdown_to_html(md : String) -> String {
         in_paragraph = false
       }
       buf.write_string("<h2>")
-      buf.write_string(trimmed[3:].to_string())
+      buf.write_string(trimmed[3:].to_owned())
       buf.write_string("</h2>")
     } else if trimmed.has_prefix("### ") {
       if in_paragraph {
@@ -231,7 +231,7 @@ fn markdown_to_html(md : String) -> String {
         in_paragraph = false
       }
       buf.write_string("<h3>")
-      buf.write_string(trimmed[4:].to_string())
+      buf.write_string(trimmed[4:].to_owned())
       buf.write_string("</h3>")
     } else {
       if !in_paragraph {

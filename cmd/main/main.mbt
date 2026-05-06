@@ -184,11 +184,11 @@ fn get_output_path(
     j += 1
   }
   if last_slash >= 0 {
-    base = input_path[last_slash + 1:].to_string()
+    base = input_path[last_slash + 1:].to_owned()
   }
   // Remove .pug extension if present
   if base.has_suffix(".pug") {
-    base = base[0:base.length() - 4].to_string()
+    base = base[0:base.length() - 4].to_owned()
   }
   // Combine with output directory
   if out_dir.is_empty() {
@@ -323,7 +323,7 @@ fn main {
   let args = @sys.get_cli_args()
   // Skip program name (first argument)
   let cli_args : Array[String] = if args.length() > 1 {
-    args[1:].to_array()
+    args[1:].to_owned()
   } else {
     []
   }

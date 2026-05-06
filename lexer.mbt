@@ -829,7 +829,7 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
   // Note: This is different from 'block' alone which is for mixin block content
   if self.starts_with("block ") {
     self.skip_n(6) // consume "block "
-    let name = self.read_line_text().trim(chars=" \t").to_string()
+    let name = self.read_line_text().trim(chars=" \t").to_owned()
     tokens.push(NamedBlock(name))
     if self.peek() is Some('\n') {
       let _ = self.advance()
@@ -841,7 +841,7 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
   // Check for append (append to block)
   if self.starts_with("append ") {
     self.skip_n(7) // consume "append "
-    let name = self.read_line_text().trim(chars=" \t").to_string()
+    let name = self.read_line_text().trim(chars=" \t").to_owned()
     tokens.push(AppendBlock(name))
     if self.peek() is Some('\n') {
       let _ = self.advance()
@@ -853,7 +853,7 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
   // Check for prepend (prepend to block)
   if self.starts_with("prepend ") {
     self.skip_n(8) // consume "prepend "
-    let name = self.read_line_text().trim(chars=" \t").to_string()
+    let name = self.read_line_text().trim(chars=" \t").to_owned()
     tokens.push(PrependBlock(name))
     if self.peek() is Some('\n') {
       let _ = self.advance()
@@ -868,7 +868,7 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
     // Read filter name (until space)
     let filter_name = self.take_while(fn(c) { c != ' ' && c != '\n' })
     self.skip_while(fn(c) { c == ' ' })
-    let path = self.read_line_text().trim(chars=" \t").to_string()
+    let path = self.read_line_text().trim(chars=" \t").to_owned()
     tokens.push(IncludeFiltered(filter_name, path))
     if self.peek() is Some('\n') {
       let _ = self.advance()
@@ -878,7 +878,7 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
   }
   if self.starts_with("include ") {
     self.skip_n(8) // consume "include "
-    let path = self.read_line_text().trim(chars=" \t").to_string()
+    let path = self.read_line_text().trim(chars=" \t").to_owned()
     tokens.push(Include(path))
     if self.peek() is Some('\n') {
       let _ = self.advance()
@@ -890,7 +890,7 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
   // Check for extends (template inheritance)
   if self.starts_with("extends ") {
     self.skip_n(8) // consume "extends "
-    let path = self.read_line_text().trim(chars=" \t").to_string()
+    let path = self.read_line_text().trim(chars=" \t").to_owned()
     tokens.push(Extends(path))
     if self.peek() is Some('\n') {
       let _ = self.advance()
@@ -1365,7 +1365,7 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
     if self.peek() is Some(' ') {
       let _ = self.advance()
     }
-    let variable = self.read_line_text().trim(chars=" \t").to_string()
+    let variable = self.read_line_text().trim(chars=" \t").to_owned()
     tokens.push(UnescapedBufferedOutput(variable))
     if self.peek() is Some('\n') {
       let _ = self.advance()
@@ -1381,7 +1381,7 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
     if self.peek() is Some(' ') {
       let _ = self.advance()
     }
-    let variable = self.read_line_text().trim(chars=" \t").to_string()
+    let variable = self.read_line_text().trim(chars=" \t").to_owned()
     tokens.push(BufferedOutput(variable))
     if self.peek() is Some('\n') {
       let _ = self.advance()
