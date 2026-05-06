@@ -76,10 +76,10 @@ pub fn eval_js_expression(expr : String, locals : Locals) -> String {
 /// Handles simple "var name = value" patterns only
 pub fn exec_js_statement(stmt : String, locals : Locals) -> Unit {
   // Try to parse simple "var name = value" pattern
-  let trimmed = stmt.trim_start(chars=" \t").to_string()
+  let trimmed = stmt.trim_start(chars=" \t").to_owned()
   if trimmed.has_prefix("var ") {
-    let rest = trimmed[4:].to_string()
-    let rest_trimmed = rest.trim_start(chars=" \t").to_string()
+    let rest = trimmed[4:].to_owned()
+    let rest_trimmed = rest.trim_start(chars=" \t").to_owned()
     // Find variable name
     let mut name_end = 0
     for c in rest_trimmed {
@@ -89,13 +89,13 @@ pub fn exec_js_statement(stmt : String, locals : Locals) -> Unit {
       name_end += 1
     }
     if name_end > 0 {
-      let name = rest_trimmed[0:name_end].to_string()
+      let name = rest_trimmed[0:name_end].to_owned()
       // Find = sign
-      let after_name = rest_trimmed[name_end:].to_string()
-      let eq_trimmed = after_name.trim_start(chars=" \t").to_string()
+      let after_name = rest_trimmed[name_end:].to_owned()
+      let eq_trimmed = after_name.trim_start(chars=" \t").to_owned()
       if eq_trimmed.has_prefix("=") {
-        let value_part = eq_trimmed[1:].to_string()
-        let value_trimmed = value_part.trim_start(chars=" \t").to_string()
+        let value_part = eq_trimmed[1:].to_owned()
+        let value_trimmed = value_part.trim_start(chars=" \t").to_owned()
         // Parse value
         let value = if value_trimmed.has_prefix("\"") {
           // Double-quoted string
@@ -112,7 +112,7 @@ pub fn exec_js_statement(stmt : String, locals : Locals) -> Unit {
             }
             end += 1
           }
-          value_trimmed[0:end].to_string()
+          value_trimmed[0:end].to_owned()
         }
         locals.set(name, value)
         return

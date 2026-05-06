@@ -212,7 +212,7 @@ fn is_quoted_literal(s : String) -> Bool {
 ///|
 /// Check if a string looks like a simple variable name (identifier)
 fn is_simple_identifier(s : String) -> Bool {
-  let trimmed = s.trim(chars=" \t").to_string()
+  let trimmed = s.trim(chars=" \t").to_owned()
   if trimmed.length() == 0 {
     return false
   }
@@ -460,7 +460,7 @@ fn render_node_with_mixins(
     Interpolation(name) => {
       // Check for post-increment (n++)
       let (expr, is_post_increment) = if name.has_suffix("++") {
-        (name[0:name.length() - 2].to_string(), true)
+        (name[0:name.length() - 2].to_owned(), true)
       } else {
         (name, false)
       }
@@ -661,7 +661,7 @@ fn render_node_with_mixins(
             // Check if this is a rest parameter
             if param_name.has_prefix("...") {
               // Rest parameter - collect remaining args as JSON array
-              let rest_name = param_name[3:].to_string()
+              let rest_name = param_name[3:].to_owned()
               let rest_args : Array[String] = []
               while arg_idx < args.length() {
                 rest_args.push(args[arg_idx])
@@ -792,7 +792,7 @@ fn render_node_with_mixins(
             Some(v) => {
               let raw = eval_attr_value_raw(v, locals)
               for part in raw.split(" ") {
-                let p = part.to_string()
+                let p = part.to_owned()
                 if p.length() > 0 {
                   class_parts.push(p)
                 }
@@ -1144,7 +1144,7 @@ fn evaluate_condition(condition : String, locals : Locals) -> Bool {
     let mut i = 0
     while i < parts.length() {
       if i + 1 < parts.length() && parts[i] == '=' && parts[i + 1] == '=' {
-        var_name = buf.to_string().trim(chars=" \t").to_string()
+        var_name = buf.to_string().trim(chars=" \t").to_owned()
         buf.reset()
         i += 2
         found_eq = true
@@ -1158,10 +1158,10 @@ fn evaluate_condition(condition : String, locals : Locals) -> Bool {
       i += 1
     }
     if found_eq {
-      expected = buf.to_string().trim(chars=" \t").to_string()
+      expected = buf.to_string().trim(chars=" \t").to_owned()
       // Remove quotes from expected value
       if expected.has_prefix("\"") && expected.has_suffix("\"") {
-        expected = expected[1:expected.length() - 1].to_string()
+        expected = expected[1:expected.length() - 1].to_owned()
       }
       match locals.get(var_name) {
         Some(v) => return v == expected
@@ -1170,7 +1170,7 @@ fn evaluate_condition(condition : String, locals : Locals) -> Bool {
     }
   }
   // Simple variable check - truthy if exists and not "false" or empty
-  let var_name = condition.trim(chars=" \t").to_string()
+  let var_name = condition.trim(chars=" \t").to_owned()
   match locals.get(var_name) {
     Some(v) => v != "" && v != "false"
     None => false
@@ -1180,7 +1180,7 @@ fn evaluate_condition(condition : String, locals : Locals) -> Bool {
 ///|
 /// Evaluate while loop condition (supports comparison operators like <, >, <=, >=)
 fn evaluate_while_condition(condition : String, locals : Locals) -> Bool {
-  let cond = condition.trim(chars=" \t").to_string()
+  let cond = condition.trim(chars=" \t").to_owned()
   // Handle < comparison: var < number
   if cond.contains("<") && !cond.contains("<=") {
     let parts = cond.to_array()
@@ -1190,7 +1190,7 @@ fn evaluate_while_condition(condition : String, locals : Locals) -> Bool {
     let mut i = 0
     while i < parts.length() {
       if parts[i] == '<' {
-        var_name = buf.to_string().trim(chars=" \t").to_string()
+        var_name = buf.to_string().trim(chars=" \t").to_owned()
         buf.reset()
         i += 1
         found_op = true
@@ -1203,7 +1203,7 @@ fn evaluate_while_condition(condition : String, locals : Locals) -> Bool {
       i += 1
     }
     if found_op {
-      let rhs_str = buf.to_string().trim(chars=" \t").to_string()
+      let rhs_str = buf.to_string().trim(chars=" \t").to_owned()
       match locals.get(var_name) {
         Some(v) => {
           let rhs_result = try? @string.parse_int(rhs_str)
@@ -1478,7 +1478,7 @@ fn render_node_with_registry(
             Some(v) => {
               let raw = eval_attr_value_raw(v, locals)
               for part in raw.split(" ") {
-                let p = part.to_string()
+                let p = part.to_owned()
                 if p.length() > 0 {
                   class_parts.push(p)
                 }
@@ -1730,7 +1730,7 @@ fn normalize_path(path : String) -> String {
   let parts : Array[String] = []
   let segments = path.split("/")
   for seg in segments {
-    let s = seg.to_string()
+    let s = seg.to_owned()
     if s == ".." {
       if parts.length() > 0 && parts[parts.length() - 1] != ".." {
         let _ = parts.pop()

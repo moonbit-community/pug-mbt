@@ -216,7 +216,7 @@ fn parse_json_into_locals(json : String, locals : Locals) -> Unit {
         i += 1
       }
     }
-    let key = json[key_start:i].to_string()
+    let key = json[key_start:i].to_owned()
     i += 1 // skip closing "
     // Skip : and whitespace
     while i < chars.length() && (chars[i] == ':' || chars[i] == ' ') {
@@ -234,7 +234,7 @@ fn parse_json_into_locals(json : String, locals : Locals) -> Unit {
           i += 1
         }
       }
-      let v = json[val_start:i].to_string()
+      let v = json[val_start:i].to_owned()
       i += 1 // skip closing "
       v
     } else {
@@ -243,7 +243,7 @@ fn parse_json_into_locals(json : String, locals : Locals) -> Unit {
       while i < chars.length() && chars[i] != ',' && chars[i] != '}' {
         i += 1
       }
-      json[val_start:i].to_string()
+      json[val_start:i].to_owned()
     }
     locals.set(key, value)
   }
