@@ -49,10 +49,18 @@ test "lexer handles tab-indented filter blocks without looping" {
   // "indent character count", which could move the cursor backwards past the
   // line boundary when tabs were involved.
   let input = "\t:markdown\n\t\tp indented\n\tp outside\n"
-  inspect(
+  debug_inspect(
     @pug.tokenize(input),
     content=(
-      #|[Indent(2), Filter("markdown", "p indented"), Indent(2), Tag("p"), Text("outside"), Newline, EOF]
+      #|[
+      #|  Indent(2),
+      #|  Filter("markdown", "p indented"),
+      #|  Indent(2),
+      #|  Tag("p"),
+      #|  Text("outside"),
+      #|  Newline,
+      #|  EOF,
+      #|]
     ),
   )
 }

@@ -22,7 +22,7 @@ test "each over array" {
     #|ul
     #|  each item in items
     #|    li #{item}
-  let locals = Locals::new()
+  let locals = @pug.Locals::new()
   locals.set_array("items", ["Apple", "Banana", "Cherry"])
   inspect(
     @pug.render_with_locals(pug, locals),
@@ -74,7 +74,7 @@ test "each with index" {
     #|ul
     #|  each item, index in items
     #|    li #{index}: #{item}
-  let locals = Locals::new()
+  let locals = @pug.Locals::new()
   locals.set_array("items", ["a", "b", "c"])
   inspect(
     @pug.render_with_locals(pug, locals),
@@ -130,7 +130,7 @@ test "each over object" {
     #|ul
     #|  each val, key in obj
     #|    li #{key}: #{val}
-  let locals = Locals::new()
+  let locals = @pug.Locals::new()
   locals.set_object("obj", { "name": "Alice", "age": "30" })
   inspect(
     @pug.render_with_locals(pug, locals),
@@ -188,7 +188,7 @@ test "each with else for empty" {
     #|    li #{item}
     #|  else
     #|    li No items
-  let locals = Locals::new()
+  let locals = @pug.Locals::new()
   locals.set_array("items", [])
   inspect(
     @pug.render_with_locals(pug, locals),
@@ -252,7 +252,7 @@ test "for alias for each" {
     #|ul
     #|  for item in items
     #|    li #{item}
-  let locals = Locals::new()
+  let locals = @pug.Locals::new()
   locals.set_array("items", ["One", "Two"])
   inspect(
     @pug.render_with_locals(pug, locals),
@@ -352,7 +352,7 @@ test "nested iteration" {
     #|    tr
     #|      each cell in row
     #|        td #{cell}
-  let locals = Locals::new()
+  let locals = @pug.Locals::new()
   locals.set_nested_array("rows", [["1", "2"], ["3", "4"]])
   inspect(
     @pug.render_with_locals(pug, locals),

@@ -1,11 +1,11 @@
 import {
   "moonbitlang/x/fs",
-  "moonbitlang/core/abort",
   "moonbitlang/core/string",
-  "moonbitlang/core/json",
+  "moonbitlang/core/debug",
 }
 
 import {
+  "moonbitlang/core/quickcheck" @gen,
   "moonbitlang/quickcheck",
 } for "wbtest"
 
@@ -19,3 +19,7 @@ options(
     "pugjs_generated_test.mbt": [ "js" ],
   },
 )
+
+import {
+  "moonbitlang/core/json",
+} for "test"

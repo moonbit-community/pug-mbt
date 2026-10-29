@@ -21,7 +21,7 @@ pub struct Attribute {
 } derive(Debug, Eq, ToJson)
 
 ///|
-pub impl Show for Attribute with output(self, logger) {
+pub impl Show for Attribute with fn output(self, logger) {
   logger.write_object(self.to_repr())
 }
 
@@ -52,7 +52,7 @@ pub fn Locals::set_array(
   values : Array[String],
 ) -> Unit {
   // Store as JSON-like array representation for now
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   buf.write_string("[")
   for i, v in values {
     if i > 0 {
@@ -74,7 +74,7 @@ pub fn Locals::set_object(
   obj : Map[String, String],
 ) -> Unit {
   // Store as JSON-like object representation for now
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   buf.write_string("{")
   let mut first = true
   for k, v in obj {
@@ -100,7 +100,7 @@ pub fn Locals::set_nested_array(
   rows : Array[Array[String]],
 ) -> Unit {
   // Store as JSON-like nested array representation for now
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   buf.write_string("[")
   for i, row in rows {
     if i > 0 {
@@ -201,7 +201,7 @@ pub enum Node {
 } derive(Debug, Eq, ToJson)
 
 ///|
-pub impl Show for Node with output(self, logger) {
+pub impl Show for Node with fn output(self, logger) {
   logger.write_object(self.to_repr())
 }
 
@@ -212,13 +212,13 @@ pub struct Document {
 } derive(ToJson, Debug)
 
 ///|
-pub impl Show for Document with output(self, logger) {
+pub impl Show for Document with fn output(self, logger) {
   logger.write_object(self.to_repr())
 }
 
 ///|
 pub fn Document::new() -> Document {
-  { nodes: [] }
+  { nodes: [], }
 }
 
 ///|
@@ -240,7 +240,7 @@ pub struct TemplateRegistry {
 
 ///|
 pub fn TemplateRegistry::new() -> TemplateRegistry {
-  { templates: {} }
+  { templates: {}, }
 }
 
 ///|

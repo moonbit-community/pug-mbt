@@ -240,7 +240,7 @@ test "escaped attribute value" {
 
 ///|
 test "attribute with interpolation" {
-  let locals = Locals::new()
+  let locals = @pug.Locals::new()
   locals.set("url", "https://moonbit.io")
   inspect(
     @pug.render_with_locals("a(href=\"#{url}\") MoonBit", locals),

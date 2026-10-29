@@ -20,7 +20,7 @@ priv struct MixinStore {
 
 ///|
 fn MixinStore::new() -> MixinStore {
-  { mixins: {} }
+  { mixins: {}, }
 }
 
 ///|
@@ -32,7 +32,7 @@ priv struct BlockStore {
 
 ///|
 fn BlockStore::new() -> BlockStore {
-  { blocks: {} }
+  { blocks: {}, }
 }
 
 ///|
@@ -184,7 +184,7 @@ fn is_raw_text_element(tag : String) -> Bool {
 ///|
 /// Escape HTML special characters
 fn escape_html(s : String) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   for c in s {
     match c {
       '&' => buf.write_string("&amp;")
@@ -317,7 +317,7 @@ fn eval_attr_value_raw(v : String, locals : Locals) -> String {
         (chars[0] == '"' && chars[chars.length() - 1] == '"') ||
         (chars[0] == '\'' && chars[chars.length() - 1] == '\'')
       ) {
-      let inner = StringBuilder::new()
+      let inner = StringBuilder()
       for i in 1..<(chars.length() - 1) {
         inner.write_char(chars[i])
       }
@@ -337,8 +337,8 @@ fn eval_attr_value_raw(v : String, locals : Locals) -> String {
 /// Process string with interpolations, replacing #{name} with values from locals
 fn interpolate_string(s : String, locals : Locals, escape : Bool) -> String {
   let chars = s.to_array()
-  let buf = StringBuilder::new()
-  let literal_buf = StringBuilder::new() // Accumulate literal text
+  let buf = StringBuilder()
+  let literal_buf = StringBuilder() // Accumulate literal text
   let mut i = 0
   while i < chars.length() {
     // Check for #{...}
@@ -355,7 +355,7 @@ fn interpolate_string(s : String, locals : Locals, escape : Bool) -> String {
       }
       i += 2 // skip #{
       // Read expression until }
-      let expr_buf = StringBuilder::new()
+      let expr_buf = StringBuilder()
       let mut brace_depth = 1
       while i < chars.length() && brace_depth > 0 {
         if chars[i] == '{' {
@@ -416,12 +416,12 @@ pub struct RenderOptions {
 
 ///|
 pub fn RenderOptions::default() -> RenderOptions {
-  { pretty: false, indent_str: "  " }
+  { pretty: false, indent_str: "  ", }
 }
 
 ///|
 pub fn RenderOptions::pretty() -> RenderOptions {
-  { pretty: true, indent_str: "  " }
+  { pretty: true, indent_str: "  ", }
 }
 
 ///|
@@ -433,7 +433,7 @@ fn render_node_with_mixins(
   locals : Locals,
   mixins : MixinStore,
   blocks : BlockStore,
-  depth : Int,
+  depth : Int32,
   block_content : Array[Node], // Content passed to mixin via block
 ) -> Unit {
   let indent = if options.pretty {
@@ -480,7 +480,9 @@ fn render_node_with_mixins(
       buf.write_string(newline)
       // Handle post-increment
       if is_post_increment {
-        let parse_result : Result[Int, _] = try? @string.parse_int(value)
+        let parse_result : Result[Int32, _] = Ok(@string.parse_int(value)) catch {
+          e => Err(e)
+        }
         match parse_result {
           Ok(n) => locals.set(expr, (n + 1).to_string())
           Err(_) => ()
@@ -777,7 +779,7 @@ fn render_node_with_mixins(
       buf.write_string("<")
       buf.write_string(tag)
       if is_void_element(tag) && children.length() > 0 {
-        @abort.abort("Void element cannot have children: <" + tag + ">")
+        abort("Void element cannot have children: <" + tag + ">")
       }
 
       // Prepare class output and filter out `class` attributes for pugjs-compatible merging.
@@ -950,7 +952,7 @@ fn parse_json_array(s : String) -> Array[String] {
         i += 1
       }
       // Extract the nested array as string
-      let nested = StringBuilder::new()
+      let nested = StringBuilder()
       for j in start..<i {
         nested.write_char(chars[j])
       }
@@ -958,7 +960,7 @@ fn parse_json_array(s : String) -> Array[String] {
     } else if chars[i] == '"' {
       // Parse quoted string
       i += 1 // skip opening "
-      let buf = StringBuilder::new()
+      let buf = StringBuilder()
       while i < chars.length() && chars[i] != '"' {
         buf.write_char(chars[i])
         i += 1
@@ -967,7 +969,7 @@ fn parse_json_array(s : String) -> Array[String] {
       i += 1 // skip closing "
     } else {
       // Parse unquoted value
-      let buf = StringBuilder::new()
+      let buf = StringBuilder()
       while i < chars.length() && chars[i] != ',' && chars[i] != ']' {
         buf.write_char(chars[i])
         i += 1
@@ -1003,7 +1005,7 @@ fn parse_json_object_pairs(value : String?) -> Array[(String, String)] {
         let mut key = ""
         if chars[i] == '"' {
           i += 1 // skip opening "
-          let buf = StringBuilder::new()
+          let buf = StringBuilder()
           while i < chars.length() && chars[i] != '"' {
             buf.write_char(chars[i])
             i += 1
@@ -1019,7 +1021,7 @@ fn parse_json_object_pairs(value : String?) -> Array[(String, String)] {
         let mut val = ""
         if i < chars.length() && chars[i] == '"' {
           i += 1 // skip opening "
-          let buf = StringBuilder::new()
+          let buf = StringBuilder()
           while i < chars.length() && chars[i] != '"' {
             buf.write_char(chars[i])
             i += 1
@@ -1064,7 +1066,7 @@ fn parse_json_object_values(s : String) -> Array[String] {
     // Parse value (quoted)
     if i < chars.length() && chars[i] == '"' {
       i += 1 // skip opening "
-      let buf = StringBuilder::new()
+      let buf = StringBuilder()
       while i < chars.length() && chars[i] != '"' {
         buf.write_char(chars[i])
         i += 1
@@ -1082,7 +1084,7 @@ fn split_on_operator(condition : String, op : String) -> Array[String] {
   let parts : Array[String] = []
   let chars = condition.to_array()
   let op_chars = op.to_array()
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   let mut i = 0
   while i < chars.length() {
     // Check for operator
@@ -1137,7 +1139,7 @@ fn evaluate_condition(condition : String, locals : Locals) -> Bool {
   // Handle equality comparison: variable == "value"
   if condition.contains("==") {
     let parts = condition.to_array()
-    let buf = StringBuilder::new()
+    let buf = StringBuilder()
     let mut found_eq = false
     let mut var_name = ""
     let mut expected = ""
@@ -1184,7 +1186,7 @@ fn evaluate_while_condition(condition : String, locals : Locals) -> Bool {
   // Handle < comparison: var < number
   if cond.contains("<") && !cond.contains("<=") {
     let parts = cond.to_array()
-    let buf = StringBuilder::new()
+    let buf = StringBuilder()
     let mut found_op = false
     let mut var_name = ""
     let mut i = 0
@@ -1206,8 +1208,8 @@ fn evaluate_while_condition(condition : String, locals : Locals) -> Bool {
       let rhs_str = buf.to_string().trim(chars=" \t").to_owned()
       match locals.get(var_name) {
         Some(v) => {
-          let rhs_result = try? @string.parse_int(rhs_str)
-          let lhs_result = try? @string.parse_int(v)
+          let rhs_result = Ok(@string.parse_int(rhs_str)) catch { e => Err(e) }
+          let lhs_result = Ok(@string.parse_int(v)) catch { e => Err(e) }
           match (lhs_result, rhs_result) {
             (Ok(lhs_num), Ok(rhs_num)) => return lhs_num < rhs_num
             _ => return false
@@ -1235,7 +1237,7 @@ pub fn Document::render_with_locals(
   let blocks = BlockStore::new()
   collect_blocks(self.iter(), blocks)
   // Then render all nodes
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   for node in self.iter() {
     render_node_with_mixins(node, buf, options, locals, mixins, blocks, 0, [])
   }
@@ -1269,7 +1271,7 @@ pub struct CompiledTemplate {
 ///|
 /// Compile a Pug template string into a reusable template
 pub fn compile(input : String) -> CompiledTemplate {
-  { doc: parse(input) }
+  { doc: parse(input), }
 }
 
 ///|
@@ -1351,7 +1353,7 @@ fn render_node_with_registry(
   blocks : BlockStore,
   child_blocks : Map[String, (Array[Node], String)],
   registry : TemplateRegistry,
-  depth : Int,
+  depth : Int32,
   block_content : Array[Node],
   visited : Map[String, Bool],
 ) -> Unit {
@@ -1463,7 +1465,7 @@ fn render_node_with_registry(
       buf.write_string("<")
       buf.write_string(tag)
       if is_void_element(tag) && children.length() > 0 {
-        @abort.abort("Void element cannot have children: <" + tag + ">")
+        abort("Void element cannot have children: <" + tag + ">")
       }
 
       // Prepare class output and filter out `class` attributes for pugjs-compatible merging.
@@ -1618,7 +1620,7 @@ pub fn Document::render_with_registry(
   registry : TemplateRegistry,
   options~ : RenderOptions,
 ) -> String {
-  let visited : Map[String, Bool] = {}
+  let visited : Map[String, Bool] = Map([])
   // Check if this template extends another
   match find_extends(self) {
     Some(parent_path) =>
@@ -1631,7 +1633,7 @@ pub fn Document::render_with_registry(
           }
           visited[parent_path] = true
           // Collect child's named blocks
-          let child_blocks : Map[String, (Array[Node], String)] = {}
+          let child_blocks : Map[String, (Array[Node], String)] = Map([])
           collect_child_blocks(self.iter(), child_blocks)
           // Parse parent template
           let parent_doc = parse(parent_source)
@@ -1641,7 +1643,7 @@ pub fn Document::render_with_registry(
           collect_mixins(parent_doc.iter(), mixins)
           let blocks = BlockStore::new()
           // Render parent with child blocks merged
-          let buf = StringBuilder::new()
+          let buf = StringBuilder()
           for node in parent_doc.iter() {
             render_node_with_registry(
               node,
@@ -1667,8 +1669,8 @@ pub fn Document::render_with_registry(
       collect_mixins(self.iter(), mixins)
       let blocks = BlockStore::new()
       collect_blocks(self.iter(), blocks)
-      let child_blocks : Map[String, (Array[Node], String)] = {}
-      let buf = StringBuilder::new()
+      let child_blocks : Map[String, (Array[Node], String)] = Map([])
+      let buf = StringBuilder()
       for node in self.iter() {
         render_node_with_registry(
           node,
@@ -1716,7 +1718,7 @@ fn dirname(path : String) -> String {
   if last_slash <= 0 {
     "."
   } else {
-    let buf = StringBuilder::new()
+    let buf = StringBuilder()
     for i in 0..<last_slash {
       buf.write_char(chars[i])
     }
@@ -1819,7 +1821,7 @@ pub fn render_file_with_locals(
   locals : Locals,
 ) -> String raise @fs.IOError {
   let registry = TemplateRegistry::new()
-  let visited : Map[String, Bool] = {}
+  let visited : Map[String, Bool] = Map([])
   let base_dir = dirname(path)
   let filename = if path.contains("/") {
     let chars = path.to_array()
@@ -1829,7 +1831,7 @@ pub fn render_file_with_locals(
         last_slash = i
       }
     }
-    let buf = StringBuilder::new()
+    let buf = StringBuilder()
     for i in (last_slash + 1)..<chars.length() {
       buf.write_char(chars[i])
     }
@@ -2000,12 +2002,12 @@ pub fn parse_with_registry(
   registry : TemplateRegistry,
 ) -> Document {
   let doc = parse(input)
-  let visited : Map[String, Bool] = {}
+  let visited : Map[String, Bool] = Map([])
   let resolved_nodes : Array[Node] = []
   for node in doc.iter() {
     for r in resolve_node_includes(node, registry, visited) {
       resolved_nodes.push(r)
     }
   }
-  { nodes: resolved_nodes }
+  { nodes: resolved_nodes, }
 }

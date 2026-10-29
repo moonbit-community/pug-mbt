@@ -23,7 +23,7 @@
 
 ///|
 fn main {
-  let args = @sys.get_cli_args()
+  let args = cli_args()
   if args.length() < 2 {
     println("usage: fuzz <base64-pug-source>")
     @sys.exit(2)
@@ -31,7 +31,7 @@ fn main {
   let b64 = args[1]
   try @base64.decode(b64) catch {
     e => {
-      println("base64 decode error: \{e}")
+      println("base64 decode error: \{Repr(e)}")
       @sys.exit(2)
     }
   } noraise {

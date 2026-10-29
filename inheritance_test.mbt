@@ -93,8 +93,8 @@ test "block with extends" {
     #|block content
     #|  p Child content
   // Test that we can parse both templates
-  let layout_doc = parse(layout)
-  let child_doc = parse(child)
+  let layout_doc = @pug.parse(layout)
+  let child_doc = @pug.parse(child)
   @json.json_inspect(layout_doc.nodes.length() > 0, content=true)
   @json.json_inspect(child_doc.nodes.length() > 0, content=true)
 }
@@ -108,7 +108,7 @@ test "append block" {
     #|      script(src="/jquery.js")
     #|append scripts
     #|  script(src="/app.js")
-  let html = render(pug)
+  let html = @pug.render(pug)
   // append adds to the end of the block
   @json.json_inspect(
     html,
@@ -125,7 +125,7 @@ test "prepend block" {
     #|      script(src="/app.js")
     #|prepend scripts
     #|  script(src="/jquery.js")
-  let html = render(pug)
+  let html = @pug.render(pug)
   // prepend adds to the beginning of the block
   @json.json_inspect(
     html,
@@ -135,7 +135,7 @@ test "prepend block" {
 
 ///|
 test "extends with registry - basic" {
-  let registry = TemplateRegistry::new()
+  let registry = @pug.TemplateRegistry::new()
   // Register the layout template
   let layout =
     #|html
@@ -151,7 +151,7 @@ test "extends with registry - basic" {
     #|extends layout.pug
     #|block content
     #|  p Child content
-  let html = render_with_registry(child, Locals::new(), registry)
+  let html = @pug.render_with_registry(child, @pug.Locals::new(), registry)
   @json.json_inspect(
     html,
     content="<html><head><title>Default Title</title></head><body><p>Child content</p></body></html>",
@@ -160,7 +160,7 @@ test "extends with registry - basic" {
 
 ///|
 test "extends with registry - append block" {
-  let registry = TemplateRegistry::new()
+  let registry = @pug.TemplateRegistry::new()
   let layout =
     #|html
     #|  head
@@ -171,7 +171,7 @@ test "extends with registry - append block" {
     #|extends layout.pug
     #|append scripts
     #|  script(src="/app.js")
-  let html = render_with_registry(child, Locals::new(), registry)
+  let html = @pug.render_with_registry(child, @pug.Locals::new(), registry)
   @json.json_inspect(
     html,
     content="<html><head><script src=\"/jquery.js\"></script><script src=\"/app.js\"></script></head></html>",
@@ -180,7 +180,7 @@ test "extends with registry - append block" {
 
 ///|
 test "extends with registry - prepend block" {
-  let registry = TemplateRegistry::new()
+  let registry = @pug.TemplateRegistry::new()
   let layout =
     #|html
     #|  head
@@ -191,7 +191,7 @@ test "extends with registry - prepend block" {
     #|extends layout.pug
     #|prepend scripts
     #|  script(src="/jquery.js")
-  let html = render_with_registry(child, Locals::new(), registry)
+  let html = @pug.render_with_registry(child, @pug.Locals::new(), registry)
   @json.json_inspect(
     html,
     content="<html><head><script src=\"/jquery.js\"></script><script src=\"/app.js\"></script></head></html>",

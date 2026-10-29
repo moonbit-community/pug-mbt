@@ -586,7 +586,7 @@ test "full html page" {
 
 ///|
 test "interpolation" {
-  let locals = Locals::new()
+  let locals = @pug.Locals::new()
   locals.set("name", "World")
   inspect(
     @pug.render_with_locals("p Hello #{name}!", locals),
@@ -615,7 +615,7 @@ test "interpolation" {
 
 ///|
 test "multiple interpolations" {
-  let locals = Locals::new()
+  let locals = @pug.Locals::new()
   locals.set("first", "John")
   locals.set("last", "Doe")
   inspect(
@@ -645,7 +645,7 @@ test "multiple interpolations" {
 
 ///|
 test "missing interpolation variable" {
-  let locals = Locals::new()
+  let locals = @pug.Locals::new()
   inspect(
     @pug.render_with_locals("p Hello #{name}!", locals),
     content="<p>Hello !</p>",
@@ -673,11 +673,11 @@ test "missing interpolation variable" {
 
 ///|
 test "compile and render" {
-  let template = compile("p Hello #{name}!")
-  let locals1 = Locals::new()
+  let template = @pug.compile("p Hello #{name}!")
+  let locals1 = @pug.Locals::new()
   locals1.set("name", "Alice")
   inspect(template.render(locals1), content="<p>Hello Alice!</p>")
-  let locals2 = Locals::new()
+  let locals2 = @pug.Locals::new()
   locals2.set("name", "Bob")
   inspect(template.render(locals2), content="<p>Hello Bob!</p>")
   @json.json_inspect(@pug.parse("p Hello #{name}!"), content={
@@ -707,7 +707,7 @@ test "interpolation in nested elements" {
     #|div
     #|  p Hello #{name}
     #|  p Welcome to #{place}
-  let locals = Locals::new()
+  let locals = @pug.Locals::new()
   locals.set("name", "User")
   locals.set("place", "MoonBit")
   inspect(

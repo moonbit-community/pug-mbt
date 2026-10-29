@@ -44,7 +44,7 @@ test "unbuffered code variable" {
 test "buffered code output" {
   let pug =
     #|p= message
-  let locals = Locals::new()
+  let locals = @pug.Locals::new()
   locals.set("message", "Hello World")
   inspect(@pug.render_with_locals(pug, locals), content="<p>Hello World</p>")
   @json.json_inspect(@pug.parse(pug), content={
@@ -68,7 +68,7 @@ test "buffered code output" {
 test "buffered code escapes html" {
   let pug =
     #|p= content
-  let locals = Locals::new()
+  let locals = @pug.Locals::new()
   locals.set("content", "<script>alert('xss')</script>")
   inspect(
     @pug.render_with_locals(pug, locals),
@@ -95,7 +95,7 @@ test "buffered code escapes html" {
 test "unescaped buffered code" {
   let pug =
     #|p!= content
-  let locals = Locals::new()
+  let locals = @pug.Locals::new()
   locals.set("content", "<strong>bold</strong>")
   inspect(
     @pug.render_with_locals(pug, locals),
@@ -122,7 +122,7 @@ test "unescaped buffered code" {
 test "inline buffered code" {
   let pug =
     #|p The answer is #{answer}
-  let locals = Locals::new()
+  let locals = @pug.Locals::new()
   locals.set("answer", "42")
   inspect(
     @pug.render_with_locals(pug, locals),
