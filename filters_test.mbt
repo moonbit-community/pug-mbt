@@ -22,6 +22,6 @@ test "simple filter parsing" {
     #|:plain
     #|  This is plain text
     #|  that spans multiple lines
-  let doc = parse(pug)
+  let doc = @pug.parse(pug)
   @json.json_inspect(doc.nodes.length() > 0, content=true)
 }

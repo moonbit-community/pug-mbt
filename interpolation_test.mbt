@@ -18,7 +18,7 @@
 
 ///|
 test "escaped interpolation" {
-  let locals = Locals::new()
+  let locals = @pug.Locals::new()
   locals.set("content", "<script>alert('xss')</script>")
   inspect(
     @pug.render_with_locals("p #{content}", locals),
@@ -43,7 +43,7 @@ test "escaped interpolation" {
 
 ///|
 test "unescaped interpolation with !{}" {
-  let locals = Locals::new()
+  let locals = @pug.Locals::new()
   locals.set("content", "<strong>bold</strong>")
   inspect(
     @pug.render_with_locals("p !{content}", locals),
@@ -68,7 +68,7 @@ test "unescaped interpolation with !{}" {
 
 ///|
 test "mixed escaped and unescaped" {
-  let locals = Locals::new()
+  let locals = @pug.Locals::new()
   locals.set("safe", "Hello")
   locals.set("html", "<em>World</em>")
   inspect(
@@ -222,7 +222,7 @@ test "nested tag interpolation" {
 
 ///|
 test "interpolation in attribute" {
-  let locals = Locals::new()
+  let locals = @pug.Locals::new()
   locals.set("id", "main")
   locals.set("cls", "active")
   inspect(
@@ -252,7 +252,7 @@ test "interpolation in attribute" {
 ///|
 test "interpolation with method call syntax" {
   // In our implementation, we just look up the variable name
-  let locals = Locals::new()
+  let locals = @pug.Locals::new()
   locals.set("name", "moonbit")
   inspect(
     @pug.render_with_locals("p Welcome to #{name}!", locals),
@@ -281,7 +281,7 @@ test "interpolation with method call syntax" {
 
 ///|
 test "whitespace around interpolation" {
-  let locals = Locals::new()
+  let locals = @pug.Locals::new()
   locals.set("name", "World")
   inspect(
     @pug.render_with_locals("p Hello #{name} !", locals),

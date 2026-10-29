@@ -16,7 +16,7 @@
 /// Token types for Pug lexer
 pub enum Token {
   /// Indentation level (number of spaces/tabs)
-  Indent(Int)
+  Indent(Int32)
   /// Tag name (div, p, span, etc.)
   Tag(String)
   /// ID selector (#id)
@@ -110,7 +110,7 @@ pub enum Token {
 } derive(Debug, Eq)
 
 ///|
-pub impl Show for Token with output(self, logger) {
+pub impl Show for Token with fn output(self, logger) {
   logger.write_object(self.to_repr())
 }
 
@@ -149,13 +149,13 @@ fn is_attr_name_char(c : Char) -> Bool {
 /// Lexer state - uses Iter[Char] for character iteration
 struct Lexer {
   chars : Array[Char]
-  mut pos : Int
+  mut pos : Int32
 }
 
 ///|
 pub fn Lexer::new(input : String) -> Lexer {
   let chars = input.to_array()
-  { chars, pos: 0 }
+  { chars, pos: 0, }
 }
 
 ///|
@@ -168,7 +168,7 @@ fn Lexer::peek(self : Lexer) -> Char? {
 }
 
 ///|
-fn Lexer::peek_ahead(self : Lexer, n : Int) -> Char? {
+fn Lexer::peek_ahead(self : Lexer, n : Int32) -> Char? {
   let idx = self.pos + n
   if idx >= self.chars.length() {
     None
@@ -197,7 +197,7 @@ fn Lexer::skip_while(self : Lexer, pred : (Char) -> Bool) -> Unit {
 
 ///|
 fn Lexer::take_while(self : Lexer, pred : (Char) -> Bool) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   while self.peek() is Some(c) && pred(c) {
     buf.write_char(c)
     let _ = self.advance()
@@ -206,13 +206,13 @@ fn Lexer::take_while(self : Lexer, pred : (Char) -> Bool) -> String {
 }
 
 ///|
-fn Lexer::preview_from(self : Lexer, from : Int, max_len : Int) -> String {
+fn Lexer::preview_from(self : Lexer, from : Int32, max_len : Int32) -> String {
   let end = if from + max_len > self.chars.length() {
     self.chars.length()
   } else {
     from + max_len
   }
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   let mut i = from
   while i < end {
     buf.write_char(self.chars[i])
@@ -223,7 +223,7 @@ fn Lexer::preview_from(self : Lexer, from : Int, max_len : Int) -> String {
 
 ///|
 /// Count leading whitespace and return indent level
-fn Lexer::read_indent(self : Lexer) -> Int {
+fn Lexer::read_indent(self : Lexer) -> Int32 {
   let mut count = 0
   while self.peek() is Some(c) {
     if c == ' ' {
@@ -263,7 +263,7 @@ fn Lexer::read_attr_value(self : Lexer) -> String {
     }
     _ => {
       // Read an expression that may contain + and quoted strings
-      let buf = StringBuilder::new()
+      let buf = StringBuilder()
       let mut in_single_quote = false
       let mut in_double_quote = false
       while self.pos < self.chars.length() {
@@ -308,7 +308,7 @@ fn Lexer::starts_with(self : Lexer, s : String) -> Bool {
 
 ///|
 /// Skip n characters
-fn Lexer::skip_n(self : Lexer, n : Int) -> Unit {
+fn Lexer::skip_n(self : Lexer, n : Int32) -> Unit {
   for _ in 0..<n {
     let _ = self.advance()
   }
@@ -325,7 +325,7 @@ fn trim_leading_space(s : String) -> String {
   if start == 0 {
     return s
   }
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   for i in start..<chars.length() {
     buf.write_char(chars[i])
   }
@@ -335,7 +335,7 @@ fn trim_leading_space(s : String) -> String {
 ///|
 /// Read tag interpolation content, handling nested brackets
 fn Lexer::read_tag_interpolation(self : Lexer) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   let mut depth = 1
   while self.pos < self.chars.length() && depth > 0 {
     match self.peek() {
@@ -422,7 +422,7 @@ fn Lexer::parse_mixin_def(self : Lexer) -> (String, Array[(String, String)]) {
       }
       if self.pos <= loop_start_pos {
         let preview = self.preview_from(loop_start_pos, 40)
-        @abort.abort(
+        abort(
           "Lexer::parse_mixin_def made no progress (pos=" +
           loop_start_pos.to_string() +
           " preview=" +
@@ -478,7 +478,7 @@ fn Lexer::parse_mixin_args(self : Lexer) -> Array[String] {
       }
       if self.pos <= loop_start_pos {
         let preview = self.preview_from(loop_start_pos, 40)
-        @abort.abort(
+        abort(
           "Lexer::parse_mixin_args made no progress (pos=" +
           loop_start_pos.to_string() +
           " preview=" +
@@ -523,7 +523,7 @@ fn Lexer::parse_mixin_attrs(self : Lexer) -> Array[(String, String)] {
         }
       } else {
         let preview = self.preview_from(self.pos, 40)
-        @abort.abort(
+        abort(
           "Lexer::parse_mixin_attrs invalid attribute (pos=" +
           self.pos.to_string() +
           " preview=" +
@@ -533,7 +533,7 @@ fn Lexer::parse_mixin_attrs(self : Lexer) -> Array[(String, String)] {
       }
       if self.pos <= loop_start_pos {
         let preview = self.preview_from(loop_start_pos, 40)
-        @abort.abort(
+        abort(
           "Lexer::parse_mixin_attrs made no progress (pos=" +
           loop_start_pos.to_string() +
           " preview=" +
@@ -605,7 +605,7 @@ fn Lexer::parse_text_with_interpolations(
   self : Lexer,
   tokens : Array[Token],
 ) -> Unit {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   let mut buf_non_empty = false
   while self.peek() is Some(c) && c != '\n' {
     // Check for tag interpolation #[...]
@@ -903,7 +903,7 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
   if self.peek() is Some(':') && self.peek_ahead(1) is Some(c) && is_alpha(c) {
     let _ = self.advance() // consume ':'
     // Read filter name
-    let name_buf = StringBuilder::new()
+    let name_buf = StringBuilder()
     while self.peek() is Some(c) && is_tag_char(c) {
       name_buf.write_char(c)
       let _ = self.advance()
@@ -917,7 +917,7 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
       let _ = self.advance()
     }
     // Read indented content (indentation level should be greater than current)
-    let content_buf = StringBuilder::new()
+    let content_buf = StringBuilder()
     let base_indent = indent
     while self.peek() is Some(_) {
       // Check current line's indentation
@@ -955,7 +955,7 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
         break
       }
       // Read line content (skip the first base_indent + 2 spaces from indentation)
-      let line_buf = StringBuilder::new()
+      let line_buf = StringBuilder()
       while self.peek() is Some(c) && c != '\n' {
         line_buf.write_char(c)
         let _ = self.advance()
@@ -1218,7 +1218,7 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
         }
       } else {
         let preview = self.preview_from(self.pos, 40)
-        @abort.abort(
+        abort(
           "Lexer::tokenize_line invalid attribute (pos=" +
           self.pos.to_string() +
           " preview=" +
@@ -1228,7 +1228,7 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
       }
       if self.pos <= loop_start_pos {
         let preview = self.preview_from(loop_start_pos, 40)
-        @abort.abort(
+        abort(
           "Lexer::tokenize_line attributes made no progress (pos=" +
           loop_start_pos.to_string() +
           " preview=" +
@@ -1306,7 +1306,7 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
           }
         } else {
           let preview = self.preview_from(self.pos, 40)
-          @abort.abort(
+          abort(
             "Lexer::tokenize_line (block expand) invalid attribute (pos=" +
             self.pos.to_string() +
             " preview=" +
@@ -1316,7 +1316,7 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
         }
         if self.pos <= loop_start_pos {
           let preview = self.preview_from(loop_start_pos, 40)
-          @abort.abort(
+          abort(
             "Lexer::tokenize_line (block expand) attributes made no progress (pos=" +
             loop_start_pos.to_string() +
             " preview=" +
@@ -1429,8 +1429,8 @@ pub fn Lexer::tokenize_line(self : Lexer) -> Array[Token] {
 
 ///|
 /// Read block text content (indented raw text after .)
-fn Lexer::read_block_text(self : Lexer, base_indent : Int) -> String {
-  let buf = StringBuilder::new()
+fn Lexer::read_block_text(self : Lexer, base_indent : Int32) -> String {
+  let buf = StringBuilder()
   let mut first = true
   while self.pos < self.chars.length() {
     // Check indentation of this line
@@ -1495,7 +1495,7 @@ pub fn Lexer::tokenize(self : Lexer) -> Array[Token] {
     // Check if we got a BlockTextMarker
     let has_block_text = line_tokens.iter().any(fn(t) { t is BlockTextMarker })
     // Check if we got a block comment marker (Comment("\u0000") or UnbufferedComment("\u0000"))
-    let mut block_comment_type : Int = 0 // 0 = none, 1 = buffered, 2 = unbuffered
+    let mut block_comment_type : Int32 = 0 // 0 = none, 1 = buffered, 2 = unbuffered
     for tok in line_tokens {
       match tok {
         Comment(t) if t == "\u0000" => block_comment_type = 1
@@ -1532,7 +1532,7 @@ pub fn Lexer::tokenize(self : Lexer) -> Array[Token] {
     // Prefer aborting with context over hanging.
     if self.pos <= start_pos {
       let preview = self.preview_from(start_pos, 40)
-      @abort.abort(
+      abort(
         "Lexer::tokenize made no progress (pos=" +
         start_pos.to_string() +
         " preview=" +

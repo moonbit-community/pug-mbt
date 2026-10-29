@@ -3,7 +3,7 @@
 
 ///|
 fn chars_to_string(chars : Array[Char]) -> String {
-  let sb = StringBuilder::new()
+  let sb = StringBuilder()
   for c in chars {
     sb.write_char(c)
   }
@@ -12,9 +12,9 @@ fn chars_to_string(chars : Array[Char]) -> String {
 
 ///|
 /// Reusable generator helpers
-fn gen_ident_char() -> @quickcheck.Gen[Char] {
+fn gen_ident_char() -> @gen.Generator[Char] {
   // Letters and digits only to keep ids/classes valid.
-  @quickcheck.one_of_array([
+  @gen.elements([
     'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p',
     'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '0', '1', '2', '3', '4', '5',
     '6', '7', '8', '9',
@@ -22,26 +22,27 @@ fn gen_ident_char() -> @quickcheck.Gen[Char] {
 }
 
 ///|
-fn gen_ident(len_min? : Int = 1, len_max? : Int = 8) -> @quickcheck.Gen[String] {
-  @quickcheck.int_range(len_min, len_max).bind(fn(len) {
-    @quickcheck.Gen::array_with_size(gen_ident_char(), len + 1).fmap(
+fn gen_ident(
+  len_min~ : Int32 = 1,
+  len_max~ : Int32 = 8,
+) -> @gen.Generator[String] {
+  @gen.int_range(len_min, len_max).flat_map(fn(len) {
+    @gen.Generator::array_with_size(gen_ident_char(), len + 1).map(
       chars_to_string,
     )
   })
 }
 
 ///|
-fn gen_tag_name() -> @quickcheck.Gen[String] {
+fn gen_tag_name() -> @gen.Generator[String] {
   // Small but non-trivial tag set.
-  @quickcheck.one_of_array([
-    "div", "span", "p", "section", "article", "ul", "li",
-  ])
+  @gen.elements(["div", "span", "p", "section", "article", "ul", "li"])
 }
 
 ///|
-fn gen_safe_char() -> @quickcheck.Gen[Char] {
+fn gen_safe_char() -> @gen.Generator[Char] {
   // Avoid interpolation markers (#,!) and line breaks to stay within a safe subset.
-  @quickcheck.one_of_array([
+  @gen.elements([
     'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p',
     'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D', 'E', 'F',
     'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V',
@@ -51,59 +52,60 @@ fn gen_safe_char() -> @quickcheck.Gen[Char] {
 }
 
 ///|
-fn gen_safe_text() -> @quickcheck.Gen[String] {
-  @quickcheck.int_range(0, 12).bind(fn(len) {
-    @quickcheck.Gen::array_with_size(gen_safe_char(), len).fmap(chars_to_string)
+fn gen_safe_text() -> @gen.Generator[String] {
+  @gen.int_range(0, 12).flat_map(fn(len) {
+    @gen.Generator::array_with_size(gen_safe_char(), len).map(chars_to_string)
   })
 }
 
 ///|
-fn gen_attribute() -> @quickcheck.Gen[Attribute] {
-  @quickcheck.liftA3(
+fn gen_attribute() -> @gen.Generator[Attribute] {
+  gen_ident().zip_with3(
+    @gen.one_of([@gen.pure(None), gen_safe_text().map(fn(v) { Some(v) })]),
+    @gen.elements([false, true]),
     fn(name, value, unescaped) {
       // Boolean attributes must not be unescaped.
       let actual_unescaped = match value {
         None => false
         Some(_) => unescaped
       }
-      { name, value, unescaped: actual_unescaped }
+      { name, value, unescaped: actual_unescaped, }
     },
-    gen_ident(),
-    @quickcheck.one_of([
-      @quickcheck.pure(None),
-      gen_safe_text().fmap(fn(v) { Some(v) }),
-    ]),
-    @quickcheck.one_of_array([false, true]),
   )
 }
 
 ///|
-fn gen_attributes(limit : Int) -> @quickcheck.Gen[Array[Attribute]] {
-  @quickcheck.int_range(0, limit).bind(fn(n) {
-    @quickcheck.Gen::array_with_size(gen_attribute(), n)
+fn gen_attributes(limit : Int32) -> @gen.Generator[Array[Attribute]] {
+  @gen.int_range(0, limit).flat_map(fn(n) {
+    @gen.Generator::array_with_size(gen_attribute(), n)
   })
 }
 
 ///|
-fn gen_classes(limit : Int) -> @quickcheck.Gen[Array[String]] {
-  @quickcheck.int_range(0, limit).bind(fn(n) {
-    @quickcheck.Gen::array_with_size(gen_ident(), n)
+fn gen_classes(limit : Int32) -> @gen.Generator[Array[String]] {
+  @gen.int_range(0, limit).flat_map(fn(n) {
+    @gen.Generator::array_with_size(gen_ident(), n)
   })
 }
 
 ///|
-fn gen_text_node() -> @quickcheck.Gen[Node] {
-  gen_safe_text().fmap(fn(t) { Node::Text(t) })
+fn gen_text_node() -> @gen.Generator[Node] {
+  gen_safe_text().map(fn(t) { Node::Text(t) })
 }
 
 ///|
 /// Recursive node generator controlled by QuickCheck size.
-fn gen_node() -> @quickcheck.Gen[Node] {
-  @quickcheck.sized(fn(size) {
+fn gen_node() -> @gen.Generator[Node] {
+  @gen.sized(fn(size) {
     let next = if size <= 1 { 0 } else { size / 2 }
     let text_gen = gen_text_node()
-    let element_gen = @quickcheck.liftA6(
-      fn(tag, id, classes, attrs, children, is_void) {
+    let element_gen = gen_tag_name()
+      .zip(@gen.one_of([@gen.pure(""), gen_ident()]))
+      .zip(gen_classes(3))
+      .zip(gen_attributes(3))
+      .zip(gen_children(next))
+      .zip_with(@gen.elements([false, true]), fn(parts, is_void) {
+        let ((((tag, id), classes), attrs), children) = parts
         Node::Element(
           tag~,
           id~,
@@ -112,35 +114,28 @@ fn gen_node() -> @quickcheck.Gen[Node] {
           children~,
           self_closing=is_void && children.is_empty(),
         )
-      },
-      gen_tag_name(),
-      @quickcheck.one_of([@quickcheck.pure(""), gen_ident()]),
-      gen_classes(3),
-      gen_attributes(3),
-      gen_children(next),
-      @quickcheck.one_of_array([false, true]),
-    )
-    @quickcheck.frequency([(3, text_gen), (7, element_gen)])
+      })
+    @gen.frequency([(3, text_gen), (7, element_gen)])
   })
 }
 
 ///|
-fn gen_children(size : Int) -> @quickcheck.Gen[Array[Node]] {
+fn gen_children(size : Int32) -> @gen.Generator[Array[Node]] {
   if size <= 0 {
-    @quickcheck.pure([])
+    @gen.pure([])
   } else {
-    @quickcheck.int_range(0, 3).bind(fn(n) {
-      @quickcheck.Gen::array_with_size(gen_node().resize(size), n)
+    @gen.int_range(0, 3).flat_map(fn(n) {
+      @gen.Generator::array_with_size(gen_node().resize(size), n)
     })
   }
 }
 
 ///|
-fn gen_document() -> @quickcheck.Gen[Document] {
-  @quickcheck.sized(fn(size) {
-    let root_count_gen = @quickcheck.int_range(1, 4)
-    root_count_gen.bind(fn(n) {
-      @quickcheck.Gen::array_with_size(gen_node().resize(size), n).fmap(fn(
+fn gen_document() -> @gen.Generator[Document] {
+  @gen.sized(fn(size) {
+    let root_count_gen = @gen.int_range(1, 4)
+    root_count_gen.flat_map(fn(n) {
+      @gen.Generator::array_with_size(gen_node().resize(size), n).map(fn(
         nodes,
       ) {
         Document::{ nodes, }
@@ -151,8 +146,8 @@ fn gen_document() -> @quickcheck.Gen[Document] {
 
 ///|
 /// Pretty-printer from our generated AST back into Pug source.
-fn indent(depth : Int, unit? : String = "  ") -> String {
-  let sb = StringBuilder::new()
+fn indent(depth : Int32, unit~ : String = "  ") -> String {
+  let sb = StringBuilder()
   for _ in 0..<depth {
     sb.write_string(unit)
   }
@@ -164,7 +159,7 @@ fn render_attributes(attrs : Array[Attribute]) -> String {
   if attrs.is_empty() {
     ""
   } else {
-    let sb = StringBuilder::new()
+    let sb = StringBuilder()
     sb.write_char('(')
     let mut first = true
     for attr in attrs {
@@ -199,7 +194,7 @@ fn pug_line_for_element(
   classes : Array[String],
   attrs : Array[Attribute],
 ) -> String {
-  let sb = StringBuilder::new()
+  let sb = StringBuilder()
   sb.write_string(tag)
   if id.length() > 0 {
     sb.write_char('#')
@@ -214,7 +209,7 @@ fn pug_line_for_element(
 }
 
 ///|
-fn append_node_lines(node : Node, depth : Int, out : StringBuilder) -> Unit {
+fn append_node_lines(node : Node, depth : Int32, out : StringBuilder) -> Unit {
   match node {
     Node::Text(t) => {
       out.write_string(indent(depth))
@@ -258,7 +253,7 @@ fn append_node_lines(node : Node, depth : Int, out : StringBuilder) -> Unit {
 
 ///|
 fn to_pug(doc : Document) -> String {
-  let sb = StringBuilder::new()
+  let sb = StringBuilder()
   for node in doc.iter() {
     append_node_lines(node, 0, sb)
   }

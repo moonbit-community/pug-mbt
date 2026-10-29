@@ -16,12 +16,12 @@
 /// Parser state
 struct Parser {
   tokens : Array[Token]
-  mut pos : Int
+  mut pos : Int32
 }
 
 ///|
 pub fn Parser::new(tokens : Array[Token]) -> Parser {
-  { tokens, pos: 0 }
+  { tokens, pos: 0, }
 }
 
 ///|
@@ -126,7 +126,7 @@ fn Parser::parse_inline_element(self : Parser) -> Node? {
               let _ = self.advance()
             }
           }
-          attributes.push({ name, value, unescaped })
+          attributes.push({ name, value, unescaped, })
         }
         Some(RParen) => {
           let _ = self.advance()
@@ -362,7 +362,7 @@ fn Parser::parse_element(self : Parser) -> Node? {
 
   // Parse attributes
   if self.peek() is Some(LParen) {
-    let seen_attrs : Map[String, Bool] = {}
+    let seen_attrs : Map[String, Bool] = Map([])
     if id.length() > 0 {
       seen_attrs["id"] = true
     }
@@ -388,12 +388,12 @@ fn Parser::parse_element(self : Parser) -> Node? {
             }
           }
           if name != "class" && seen_attrs.contains(name) {
-            @abort.abort("Duplicate attribute \"" + name + "\" is not allowed.")
+            abort("Duplicate attribute \"" + name + "\" is not allowed.")
           }
           if name != "class" {
             seen_attrs[name] = true
           }
-          attributes.push({ name, value, unescaped })
+          attributes.push({ name, value, unescaped, })
         }
         Some(RParen) => {
           let _ = self.advance()
@@ -512,7 +512,7 @@ fn Parser::parse_element(self : Parser) -> Node? {
 ///|
 /// Represents a parsed line with its indentation level
 priv struct ParsedLine {
-  indent : Int
+  indent : Int32
   node : Node
 }
 
@@ -543,7 +543,7 @@ fn Parser::parse_lines(self : Parser) -> Array[ParsedLine] {
 
     // Parse the element
     match self.parse_element() {
-      Some(node) => lines.push({ indent, node })
+      Some(node) => lines.push({ indent, node, })
       None => () // Skip unbuffered comments, etc.
     }
   }
@@ -557,11 +557,11 @@ fn build_tree(lines : Array[ParsedLine]) -> Array[Node] {
     return []
   }
   let result : Array[Node] = []
-  let stack : Array[(Int, Node)] = [] // (indent, node) pairs
+  let stack : Array[(Int32, Node)] = [] // (indent, node) pairs
   // Track recent conditionals at each indent level for else linking
-  let recent_conditionals : Map[Int, Node] = {}
+  let recent_conditionals : Map[Int32, Node] = Map([])
   // Track recent Each nodes at each indent level for else linking
-  let recent_each : Map[Int, Node] = {}
+  let recent_each : Map[Int32, Node] = Map([])
   for line in lines {
     let indent = line.indent
     let node = line.node

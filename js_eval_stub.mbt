@@ -20,7 +20,7 @@
 /// Convert Locals to JSON string (stub - same implementation)
 /// Converts "true"/"false" to boolean values for proper JS semantics
 pub fn locals_to_json(locals : Locals) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   buf.write_string("{")
   let mut first = true
   for k, v in locals.0 {
@@ -49,7 +49,7 @@ pub fn locals_to_json(locals : Locals) -> String {
 ///|
 /// Escape special characters for JSON string
 fn escape_json_string(s : String) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   for c in s {
     match c {
       '"' => buf.write_string("\\\"")
@@ -130,7 +130,7 @@ fn parse_quoted_string_stub(s : String, quote : Char) -> String {
   if chars.length() < 2 || chars[0] != quote {
     return ""
   }
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   let mut i = 1
   while i < chars.length() {
     let c = chars[i]

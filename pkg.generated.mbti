@@ -47,6 +47,12 @@ pub struct Attribute {
   value : String?
   unescaped : Bool
 } derive(Eq, ToJson, @debug.Debug)
+pub fn Attribute::equal(Self, Self) -> Bool
+pub fn Attribute::not_equal(Self, Self) -> Bool
+pub fn Attribute::output(Self, &Logger) -> Unit
+pub fn Attribute::to_json(Self) -> Json
+pub fn Attribute::to_repr(Self) -> @debug.Repr
+pub fn Attribute::to_string(Self) -> String
 pub impl Show for Attribute
 
 pub struct CompiledTemplate {
@@ -60,12 +66,16 @@ pub struct Document {
 } derive(ToJson, @debug.Debug)
 pub fn Document::iter(Self) -> Iter[Node]
 pub fn Document::new() -> Self
+pub fn Document::output(Self, &Logger) -> Unit
 pub fn Document::push(Self, Node) -> Unit
 pub fn Document::render(Self, options~ : RenderOptions) -> String
 pub fn Document::render_with_locals(Self, Locals, options~ : RenderOptions) -> String
 pub fn Document::render_with_registry(Self, Locals, TemplateRegistry, options~ : RenderOptions) -> String
 pub fn Document::to_html(Self) -> String
+pub fn Document::to_json(Self) -> Json
 pub fn Document::to_pretty_html(Self) -> String
+pub fn Document::to_repr(Self) -> @debug.Repr
+pub fn Document::to_string(Self) -> String
 pub impl Show for Document
 
 type Lexer
@@ -104,6 +114,12 @@ pub enum Node {
   Extends(path~ : String)
   Filter(name~ : String, content~ : String)
 } derive(Eq, ToJson, @debug.Debug)
+pub fn Node::equal(Self, Self) -> Bool
+pub fn Node::not_equal(Self, Self) -> Bool
+pub fn Node::output(Self, &Logger) -> Unit
+pub fn Node::to_json(Self) -> Json
+pub fn Node::to_repr(Self) -> @debug.Repr
+pub fn Node::to_string(Self) -> String
 pub impl Show for Node
 
 type Parser
@@ -128,7 +144,7 @@ pub fn TemplateRegistry::new() -> Self
 pub fn TemplateRegistry::register(Self, String, String) -> Unit
 
 pub enum Token {
-  Indent(Int)
+  Indent(Int32)
   Tag(String)
   Id(String)
   Class(String)
@@ -175,9 +191,13 @@ pub enum Token {
   SelfClose
   EOF
 } derive(Eq, @debug.Debug)
+pub fn Token::equal(Self, Self) -> Bool
+pub fn Token::not_equal(Self, Self) -> Bool
+pub fn Token::output(Self, &Logger) -> Unit
+pub fn Token::to_repr(Self) -> @debug.Repr
+pub fn Token::to_string(Self) -> String
 pub impl Show for Token
 
 // Type aliases
 
 // Traits
-

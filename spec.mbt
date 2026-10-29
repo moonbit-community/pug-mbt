@@ -37,7 +37,7 @@ pub fn eval_expression(expr : String, locals : Locals) -> String {
       // Check for string concatenation with +
       let parts = split_on_plus(trimmed)
       if parts.length() > 1 {
-        let buf = StringBuilder::new()
+        let buf = StringBuilder()
         for part in parts {
           buf.write_string(eval_single_expr(trim_spaces(part), locals))
         }
@@ -77,15 +77,15 @@ fn parse_ternary(expr : String) -> (String, String, String)? {
     return None
   }
   // Extract parts
-  let cond = StringBuilder::new()
+  let cond = StringBuilder()
   for i in 0..<question_pos {
     cond.write_char(chars[i])
   }
-  let true_val = StringBuilder::new()
+  let true_val = StringBuilder()
   for i in (question_pos + 1)..<colon_pos {
     true_val.write_char(chars[i])
   }
-  let false_val = StringBuilder::new()
+  let false_val = StringBuilder()
   for i in (colon_pos + 1)..<chars.length() {
     false_val.write_char(chars[i])
   }
@@ -122,7 +122,7 @@ fn trim_spaces(s : String) -> String {
   if start >= end {
     return ""
   }
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   for i in start..<end {
     buf.write_char(chars[i])
   }
@@ -133,7 +133,7 @@ fn trim_spaces(s : String) -> String {
 /// Split string on + for concatenation, respecting quotes
 fn split_on_plus(s : String) -> Array[String] {
   let parts : Array[String] = []
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   let chars = s.to_array()
   let mut in_single_quote = false
   let mut in_double_quote = false
@@ -170,7 +170,7 @@ fn eval_single_expr(expr : String, locals : Locals) -> String {
     if (chars[0] == '\'' && chars[chars.length() - 1] == '\'') ||
       (chars[0] == '"' && chars[chars.length() - 1] == '"') {
       // Strip quotes and return literal
-      let inner = StringBuilder::new()
+      let inner = StringBuilder()
       for i in 1..<(chars.length() - 1) {
         inner.write_char(chars[i])
       }
@@ -199,7 +199,7 @@ pub fn apply_filter(filter : String, content : String) -> String {
 /// Simple markdown to HTML conversion
 /// Supports: # headings, paragraphs, **bold**, *italic*
 fn markdown_to_html(md : String) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   let lines = md.split("\n")
   let mut in_paragraph = false
   for line in lines {

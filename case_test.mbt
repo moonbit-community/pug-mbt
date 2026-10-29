@@ -26,7 +26,7 @@ test "case with when" {
     #|    p Pending
     #|  default
     #|    p Unknown
-  let locals = Locals::new()
+  let locals = @pug.Locals::new()
   locals.set("status", "active")
   inspect(@pug.render_with_locals(pug, locals), content="<p>Active</p>")
   @json.json_inspect(@pug.parse(pug), content={
@@ -96,7 +96,7 @@ test "case with default" {
     #|    p Active
     #|  default
     #|    p Unknown
-  let locals = Locals::new()
+  let locals = @pug.Locals::new()
   locals.set("status", "other")
   inspect(@pug.render_with_locals(pug, locals), content="<p>Unknown</p>")
   @json.json_inspect(@pug.parse(pug), content={
@@ -152,7 +152,7 @@ test "case with fall through" {
     #|    p Small number
     #|  default
     #|    p Large number
-  let locals = Locals::new()
+  let locals = @pug.Locals::new()
   locals.set("num", "1")
   inspect(@pug.render_with_locals(pug, locals), content="<p>Small number</p>")
   @json.json_inspect(@pug.parse(pug), content={
@@ -207,7 +207,7 @@ test "case with block expansion" {
     #|  when "a": p Type A
     #|  when "b": p Type B
     #|  default: p Other
-  let locals = Locals::new()
+  let locals = @pug.Locals::new()
   locals.set("type", "b")
   inspect(@pug.render_with_locals(pug, locals), content="<p>Type B</p>")
   @json.json_inspect(@pug.parse(pug), content={
@@ -278,7 +278,7 @@ test "nested case" {
     #|      span.red Red
     #|    when "blue"
     #|      span.blue Blue
-  let locals = Locals::new()
+  let locals = @pug.Locals::new()
   locals.set("color", "red")
   inspect(
     @pug.render_with_locals(pug, locals),

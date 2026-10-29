@@ -135,7 +135,7 @@ fn load_locals(path : String) -> @pug.Locals {
   }
   let content = @fs.read_file_to_string(path) catch {
     e => {
-      log_error("Error reading locals file: \{e}")
+      log_error("Error reading locals file: \{Repr(e)}")
       @sys.exit(1)
       ""
     }
@@ -204,7 +204,7 @@ fn process_file(path : String, opts : Options, locals : @pug.Locals) -> Unit {
   // Use render_file_with_locals to properly handle includes
   let raw_html = @pug.render_file_with_locals(path, locals) catch {
     e => {
-      log_error("Error rendering \{path}: \{e}")
+      log_error("Error rendering \{path}: \{Repr(e)}")
       @sys.exit(1)
       ""
     }
@@ -218,7 +218,7 @@ fn process_file(path : String, opts : Options, locals : @pug.Locals) -> Unit {
     let out_path = get_output_path(path, opts.out_dir, opts.extension)
     @fs.write_string_to_file(out_path, html) catch {
       e => {
-        log_error("Error writing \{out_path}: \{e}")
+        log_error("Error writing \{out_path}: \{Repr(e)}")
         @sys.exit(1)
       }
     }
@@ -231,7 +231,7 @@ fn process_file(path : String, opts : Options, locals : @pug.Locals) -> Unit {
 ///|
 fn render_pretty_html(html : String) -> String {
   // Simple pretty printing - add newlines after closing tags
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   let mut indent = 0
   let chars = html.to_array()
   let mut i = 0
@@ -295,7 +295,7 @@ fn process_directory(
 ) -> Unit {
   let entries = @fs.read_dir(path) catch {
     e => {
-      log_error("Error reading directory \{path}: \{e}")
+      log_error("Error reading directory \{path}: \{Repr(e)}")
       @sys.exit(1)
       []
     }
@@ -320,7 +320,7 @@ fn process_directory(
 
 ///|
 fn main {
-  let args = @sys.get_cli_args()
+  let args = cli_args()
   // Skip program name (first argument)
   let cli_args : Array[String] = if args.length() > 1 {
     args[1:].to_owned()
@@ -346,7 +346,7 @@ fn main {
     if !exists {
       @fs.create_dir(opts.out_dir) catch {
         e => {
-          log_error("Error creating output directory: \{e}")
+          log_error("Error creating output directory: \{Repr(e)}")
           @sys.exit(1)
         }
       }
