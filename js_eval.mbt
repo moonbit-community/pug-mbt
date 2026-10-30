@@ -113,7 +113,7 @@ fn is_numeric_string(s : String) -> Bool {
 /// Convert Locals to JSON string for passing to JS
 /// Converts "true"/"false" to boolean values and numeric strings to numbers
 pub fn locals_to_json(locals : Locals) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   buf.write_string("{")
   let mut first = true
   for k, v in locals.0 {
@@ -145,7 +145,7 @@ pub fn locals_to_json(locals : Locals) -> String {
 ///|
 /// Escape special characters for JSON string
 fn escape_json_string(s : String) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   for c in s {
     match c {
       '"' => buf.write_string("\\\"")
