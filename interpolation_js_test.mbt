@@ -19,7 +19,7 @@ test "string interpolation, unescaped" {
     #|.quote
     #|p Joel: !{riskyBusiness}
   @json.json_inspect(
-    render(source),
+    @pug.render(source),
     content=(
       #|<div class="quote"></div><p>Joel: <em>Some of the girls are wearing my mother's clothing.</em></p>
     ),
