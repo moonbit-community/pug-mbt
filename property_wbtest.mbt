@@ -90,7 +90,7 @@ fn gen_classes(limit : Int32) -> @gen.Generator[Array[String]] {
 
 ///|
 fn gen_text_node() -> @gen.Generator[Node] {
-  gen_safe_text().map(fn(t) { Node::Text(t) })
+  gen_safe_text().map(fn(t) { Text(t) })
 }
 
 ///|
@@ -138,7 +138,7 @@ fn gen_document() -> @gen.Generator[Document] {
       @gen.Generator::array_with_size(gen_node().resize(size), n).map(fn(
         nodes,
       ) {
-        Document::{ nodes, }
+        { nodes, }
       })
     })
   })
@@ -211,13 +211,13 @@ fn pug_line_for_element(
 ///|
 fn append_node_lines(node : Node, depth : Int32, out : StringBuilder) -> Unit {
   match node {
-    Node::Text(t) => {
+    Text(t) => {
       out.write_string(indent(depth))
       out.write_string("| ")
       out.write_string(t)
       out.write_char('\n')
     }
-    Node::Element(tag~, id~, classes~, attributes~, children~, self_closing~) => {
+    Element(tag~, id~, classes~, attributes~, children~, self_closing~) => {
       out.write_string(indent(depth))
       out.write_string(pug_line_for_element(tag, id, classes, attributes))
       if self_closing && children.is_empty() {
@@ -225,10 +225,10 @@ fn append_node_lines(node : Node, depth : Int32, out : StringBuilder) -> Unit {
         out.write_char('\n')
       } else if children.is_empty() {
         out.write_char('\n')
-      } else if children.length() == 1 && children[0] is Node::Text(_) {
+      } else if children.length() == 1 && children[0] is Text(_) {
         // Inline text to reduce nesting where safe.
         match children[0] {
-          Node::Text(t) => {
+          Text(t) => {
             out.write_char(' ')
             out.write_string(t)
             out.write_char('\n')
@@ -261,23 +261,55 @@ fn to_pug(doc : Document) -> String {
 }
 
 ///|
+#derive(Debug)
+struct InterpolationInput {
+  value : String
+}
+
+///|
+pub extend InterpolationInput with @debug.Debug::{to_repr}
+
+///|
+impl @gen.Arbitrary for InterpolationInput with fn arbitrary(size, rs) {
+  { value: gen_safe_text().run(size, rs), }
+}
+
+///|
+impl @gen.Shrink for InterpolationInput
+
+///|
+impl @gen.Arbitrary for Document with fn arbitrary(size, rs) {
+  gen_document().run(size, rs)
+}
+
+///|
+impl @gen.Shrink for Document
+
+///|
 test "prop interpolation escape vs unescaped" {
-  let prop = @quickcheck.forall(gen_safe_text(), fn(value) {
-    let locals = Locals::new()
-    locals.set("x", value)
-    let escaped = escape_html(value)
-    render_with_locals("p #{x}", locals) == "<p>" + escaped + "</p>" &&
-    render_with_locals("p !{x}", locals) == "<p>" + value + "</p>"
-  })
-  @quickcheck.quick_check(prop, max_success=180, max_size=24)
+  @gen.check(
+    fn(input : InterpolationInput) {
+      let value = input.value
+      let locals = Locals::new()
+      locals.set("x", value)
+      let escaped = escape_html(value)
+      render_with_locals("p #{x}", locals) == "<p>" + escaped + "</p>" &&
+      render_with_locals("p !{x}", locals) == "<p>" + value + "</p>"
+    },
+    count=180U,
+    max_size=24U,
+  )
 }
 
 ///|
 test "property tokenizer termination" {
-  let prop = @quickcheck.forall(gen_document(), (s : Document) => {
-    let pug_src = to_pug(s)
-    let tokenized = tokenize(pug_src)
-    !tokenized.is_empty() && tokenized.last() is Some(EOF)
-  })
-  @quickcheck.quick_check(prop, max_success=200, max_size=200)
+  @gen.check(
+    (s : Document) => {
+      let pug_src = to_pug(s)
+      let tokenized = tokenize(pug_src)
+      !tokenized.is_empty() && tokenized.last() is Some(EOF)
+    },
+    count=200U,
+    max_size=200U,
+  )
 }

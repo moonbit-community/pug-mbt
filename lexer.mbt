@@ -14,6 +14,7 @@
 
 ///|
 /// Token types for Pug lexer
+#derive(Debug, Eq)
 pub enum Token {
   /// Indentation level (number of spaces/tabs)
   Indent(Int32)
@@ -107,7 +108,7 @@ pub enum Token {
   SelfClose
   /// End of input
   EOF
-} derive(Debug, Eq)
+}
 
 ///|
 pub impl Show for Token with fn output(self, logger) {

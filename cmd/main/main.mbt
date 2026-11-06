@@ -74,7 +74,7 @@ fn print_help() -> Unit {
 
 ///|
 fn print_version() -> Unit {
-  println("pug version 0.1.0 (MoonBit)")
+  println("pug version 0.1.2 (MoonBit)")
 }
 
 ///|

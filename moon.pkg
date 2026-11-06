@@ -6,7 +6,6 @@ import {
 
 import {
   "moonbitlang/core/quickcheck" @gen,
-  "moonbitlang/quickcheck",
 } for "wbtest"
 
 options(

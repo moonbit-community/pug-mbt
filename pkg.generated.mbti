@@ -3,6 +3,7 @@ package "Milky2018/pug"
 
 import {
   "moonbitlang/core/debug",
+  "moonbitlang/core/json",
   "moonbitlang/x/fs",
 }
 
@@ -42,15 +43,16 @@ pub fn tokenize(String) -> Array[Token]
 // Errors
 
 // Types and methods
+#derive(Eq, @debug.Debug, @json.ToJson)
 pub struct Attribute {
   name : String
   value : String?
   unescaped : Bool
-} derive(Eq, ToJson, @debug.Debug)
+}
 pub fn Attribute::equal(Self, Self) -> Bool
 pub fn Attribute::not_equal(Self, Self) -> Bool
 pub fn Attribute::output(Self, &Logger) -> Unit
-pub fn Attribute::to_json(Self) -> Json
+pub fn Attribute::to_json(Self) -> @json.Json
 pub fn Attribute::to_repr(Self) -> @debug.Repr
 pub fn Attribute::to_string(Self) -> String
 pub impl Show for Attribute
@@ -61,9 +63,10 @@ pub struct CompiledTemplate {
 pub fn CompiledTemplate::render(Self, Locals) -> String
 pub fn CompiledTemplate::render_with_options(Self, Locals, RenderOptions) -> String
 
+#derive(@debug.Debug, @json.ToJson)
 pub struct Document {
   nodes : Array[Node]
-} derive(ToJson, @debug.Debug)
+}
 pub fn Document::iter(Self) -> Iter[Node]
 pub fn Document::new() -> Self
 pub fn Document::output(Self, &Logger) -> Unit
@@ -72,7 +75,7 @@ pub fn Document::render(Self, options~ : RenderOptions) -> String
 pub fn Document::render_with_locals(Self, Locals, options~ : RenderOptions) -> String
 pub fn Document::render_with_registry(Self, Locals, TemplateRegistry, options~ : RenderOptions) -> String
 pub fn Document::to_html(Self) -> String
-pub fn Document::to_json(Self) -> Json
+pub fn Document::to_json(Self) -> @json.Json
 pub fn Document::to_pretty_html(Self) -> String
 pub fn Document::to_repr(Self) -> @debug.Repr
 pub fn Document::to_string(Self) -> String
@@ -91,6 +94,7 @@ pub fn Locals::set_array(Self, String, Array[String]) -> Unit
 pub fn Locals::set_nested_array(Self, String, Array[Array[String]]) -> Unit
 pub fn Locals::set_object(Self, String, Map[String, String]) -> Unit
 
+#derive(Eq, @debug.Debug, @json.ToJson)
 pub enum Node {
   Element(tag~ : String, id~ : String, classes~ : Array[String], attributes~ : Array[Attribute], children~ : Array[Node], self_closing~ : Bool)
   Text(String)
@@ -113,11 +117,11 @@ pub enum Node {
   IncludeFiltered(filter~ : String, path~ : String)
   Extends(path~ : String)
   Filter(name~ : String, content~ : String)
-} derive(Eq, ToJson, @debug.Debug)
+}
 pub fn Node::equal(Self, Self) -> Bool
 pub fn Node::not_equal(Self, Self) -> Bool
 pub fn Node::output(Self, &Logger) -> Unit
-pub fn Node::to_json(Self) -> Json
+pub fn Node::to_json(Self) -> @json.Json
 pub fn Node::to_repr(Self) -> @debug.Repr
 pub fn Node::to_string(Self) -> String
 pub impl Show for Node
@@ -143,6 +147,7 @@ pub fn TemplateRegistry::load_file(Self, String) -> Unit raise @fs.IOError
 pub fn TemplateRegistry::new() -> Self
 pub fn TemplateRegistry::register(Self, String, String) -> Unit
 
+#derive(Eq, @debug.Debug)
 pub enum Token {
   Indent(Int32)
   Tag(String)
@@ -190,7 +195,7 @@ pub enum Token {
   Filter(String, String)
   SelfClose
   EOF
-} derive(Eq, @debug.Debug)
+}
 pub fn Token::equal(Self, Self) -> Bool
 pub fn Token::not_equal(Self, Self) -> Bool
 pub fn Token::output(Self, &Logger) -> Unit

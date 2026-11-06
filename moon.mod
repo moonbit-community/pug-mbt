@@ -1,10 +1,9 @@
 name = "Milky2018/pug"
 
-version = "0.1.1"
+version = "0.1.2"
 
 import {
-  "moonbitlang/x@0.5.6",
-  "moonbitlang/quickcheck@0.15.0",
+  "moonbitlang/x@0.5.7",
 }
 
 readme = "README.mbt.md"

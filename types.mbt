@@ -14,11 +14,12 @@
 
 ///|
 /// Represents an attribute in a Pug element
+#derive(Debug, Eq, ToJson)
 pub struct Attribute {
   name : String
   value : String? // None for boolean attributes, Some("") for empty values
   unescaped : Bool // True for != syntax, false for = syntax
-} derive(Debug, Eq, ToJson)
+}
 
 ///|
 pub impl Show for Attribute with fn output(self, logger) {
@@ -123,6 +124,7 @@ pub fn Locals::set_nested_array(
 
 ///|
 /// Represents a node in the Pug AST
+#derive(Debug, Eq, ToJson)
 pub enum Node {
   /// An HTML element with tag, id, classes, attributes, and children
   Element(
@@ -198,7 +200,7 @@ pub enum Node {
   Extends(path~ : String)
   /// Filter statement (:filter_name content)
   Filter(name~ : String, content~ : String)
-} derive(Debug, Eq, ToJson)
+}
 
 ///|
 pub impl Show for Node with fn output(self, logger) {
@@ -207,9 +209,10 @@ pub impl Show for Node with fn output(self, logger) {
 
 ///|
 /// A Pug document is a list of nodes
+#derive(ToJson, Debug)
 pub struct Document {
   nodes : Array[Node]
-} derive(ToJson, Debug)
+}
 
 ///|
 pub impl Show for Document with fn output(self, logger) {

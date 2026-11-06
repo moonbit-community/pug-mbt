@@ -155,15 +155,15 @@ fn Parser::parse_inline_element(self : Parser) -> Node? {
         children.push(Text(t))
         let _ = self.advance()
       }
-      Some(Token::Interpolation(name)) => {
-        children.push(Node::Interpolation(name))
+      Some(Interpolation(name)) => {
+        children.push(Interpolation(name))
         let _ = self.advance()
       }
-      Some(Token::UnescapedInterpolation(name)) => {
-        children.push(Node::UnescapedInterpolation(name))
+      Some(UnescapedInterpolation(name)) => {
+        children.push(UnescapedInterpolation(name))
         let _ = self.advance()
       }
-      Some(Token::TagInterpolation(content)) => {
+      Some(TagInterpolation(content)) => {
         match parse_tag_interpolation(content) {
           Some(node) => children.push(node)
           None => ()
@@ -213,27 +213,27 @@ fn Parser::parse_element(self : Parser) -> Node? {
       let _ = self.advance()
       return Some(Text(text))
     }
-    Some(Token::If(condition)) => {
+    Some(If(condition)) => {
       let _ = self.advance()
       // Children will be added by build_tree
       return Some(
         Conditional(condition~, if_true=[], if_false=[], is_unless=false),
       )
     }
-    Some(Token::Unless(condition)) => {
+    Some(Unless(condition)) => {
       let _ = self.advance()
       return Some(
         Conditional(condition~, if_true=[], if_false=[], is_unless=true),
       )
     }
-    Some(Token::ElseIf(condition)) => {
+    Some(ElseIf(condition)) => {
       let _ = self.advance()
       // ElseIf is treated as a new conditional that will be nested in if_false
       return Some(
         Conditional(condition~, if_true=[], if_false=[], is_unless=false),
       )
     }
-    Some(Token::Else) => {
+    Some(Else) => {
       let _ = self.advance()
       // Else is a marker - we'll use a special condition "else" to identify it
       return Some(
@@ -245,24 +245,24 @@ fn Parser::parse_element(self : Parser) -> Node? {
         ),
       )
     }
-    Some(Token::Each(item_var, index_var, collection)) => {
+    Some(Each(item_var, index_var, collection)) => {
       let _ = self.advance()
       // Children will be added by build_tree
       return Some(
         Each(item_var~, index_var~, collection~, body=[], else_body=[]),
       )
     }
-    Some(Token::While(condition)) => {
+    Some(While(condition)) => {
       let _ = self.advance()
       // Body will be added by build_tree
       return Some(While(condition~, body=[]))
     }
-    Some(Token::Case(expr)) => {
+    Some(Case(expr)) => {
       let _ = self.advance()
       // Children (When/Default) will be added by build_tree
       return Some(Case(expr~, cases=[], default=[]))
     }
-    Some(Token::When(value)) => {
+    Some(When(value)) => {
       let _ = self.advance()
       let when_body : Array[Node] = []
       // Check for block expansion - inline content after :
@@ -275,7 +275,7 @@ fn Parser::parse_element(self : Parser) -> Node? {
       }
       return Some(When(value~, body=when_body))
     }
-    Some(Token::Default) => {
+    Some(Default) => {
       let _ = self.advance()
       let default_body : Array[Node] = []
       // Check for block expansion - inline content after :
@@ -288,52 +288,52 @@ fn Parser::parse_element(self : Parser) -> Node? {
       }
       return Some(Default(body=default_body))
     }
-    Some(Token::MixinDef(name, params)) => {
+    Some(MixinDef(name, params)) => {
       let _ = self.advance()
       // Body will be added by build_tree
       return Some(MixinDef(name~, params~, body=[]))
     }
-    Some(Token::MixinCall(name, args, attrs)) => {
+    Some(MixinCall(name, args, attrs)) => {
       let _ = self.advance()
       // Block content will be added via add_child in build_tree
       return Some(MixinCall(name~, args~, block=[], attrs~))
     }
-    Some(Token::Block) => {
+    Some(Block) => {
       let _ = self.advance()
-      return Some(Node::Block)
+      return Some(Block)
     }
-    Some(Token::VarAssign(name, value)) => {
+    Some(VarAssign(name, value)) => {
       let _ = self.advance()
-      return Some(Node::VarAssign(name~, value~))
+      return Some(VarAssign(name~, value~))
     }
-    Some(Token::NamedBlock(name)) => {
+    Some(NamedBlock(name)) => {
       let _ = self.advance()
       // Body will be added by build_tree
-      return Some(Node::NamedBlock(name~, body=[], mode="replace"))
+      return Some(NamedBlock(name~, body=[], mode="replace"))
     }
-    Some(Token::AppendBlock(name)) => {
+    Some(AppendBlock(name)) => {
       let _ = self.advance()
-      return Some(Node::NamedBlock(name~, body=[], mode="append"))
+      return Some(NamedBlock(name~, body=[], mode="append"))
     }
-    Some(Token::PrependBlock(name)) => {
+    Some(PrependBlock(name)) => {
       let _ = self.advance()
-      return Some(Node::NamedBlock(name~, body=[], mode="prepend"))
+      return Some(NamedBlock(name~, body=[], mode="prepend"))
     }
-    Some(Token::Include(path)) => {
+    Some(Include(path)) => {
       let _ = self.advance()
-      return Some(Node::Include(path~))
+      return Some(Include(path~))
     }
-    Some(Token::IncludeFiltered(filter, path)) => {
+    Some(IncludeFiltered(filter, path)) => {
       let _ = self.advance()
-      return Some(Node::IncludeFiltered(filter~, path~))
+      return Some(IncludeFiltered(filter~, path~))
     }
-    Some(Token::Extends(path)) => {
+    Some(Extends(path)) => {
       let _ = self.advance()
-      return Some(Node::Extends(path~))
+      return Some(Extends(path~))
     }
-    Some(Token::Filter(name, content)) => {
+    Some(Filter(name, content)) => {
       let _ = self.advance()
-      return Some(Node::Filter(name~, content~))
+      return Some(Filter(name~, content~))
     }
     _ => ()
   }
@@ -432,25 +432,25 @@ fn Parser::parse_element(self : Parser) -> Node? {
         children.push(Text(t))
         let _ = self.advance()
       }
-      Some(Token::Interpolation(name)) => {
-        children.push(Node::Interpolation(name))
+      Some(Interpolation(name)) => {
+        children.push(Interpolation(name))
         let _ = self.advance()
       }
-      Some(Token::UnescapedInterpolation(name)) => {
-        children.push(Node::UnescapedInterpolation(name))
+      Some(UnescapedInterpolation(name)) => {
+        children.push(UnescapedInterpolation(name))
         let _ = self.advance()
       }
-      Some(Token::BufferedOutput(variable)) => {
+      Some(BufferedOutput(variable)) => {
         // Buffered output = variable outputs the variable value as content (escaped)
-        children.push(Node::Interpolation(variable))
+        children.push(Interpolation(variable))
         let _ = self.advance()
       }
-      Some(Token::UnescapedBufferedOutput(variable)) => {
+      Some(UnescapedBufferedOutput(variable)) => {
         // Unescaped buffered output != variable outputs the variable value as content (raw)
-        children.push(Node::UnescapedInterpolation(variable))
+        children.push(UnescapedInterpolation(variable))
         let _ = self.advance()
       }
-      Some(Token::TagInterpolation(content)) => {
+      Some(TagInterpolation(content)) => {
         match parse_tag_interpolation(content) {
           Some(node) => children.push(node)
           None => ()
